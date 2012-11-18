@@ -228,6 +228,8 @@ package away3d.loaders.parsers
 
 		private function buildDefaultMaterial(map : BitmapData = null) : TextureMaterial
 		{
+			trace(" + buildDefaultMaterial");
+			
 			//TODO:fix this duplication mess
 			if (map)
 				_defaultBitmapMaterial = new TextureMaterial(new BitmapTexture(map));
@@ -239,6 +241,8 @@ package away3d.loaders.parsers
 
 		private function applySkinBindShape(geometry : Geometry, skin : DAESkin) : void
 		{
+			trace(" + applySkinBindShape");
+			
 			var vec : Vector3D = new Vector3D();
 			var i : uint;
 			for each (var sub : CompactSubGeometry in geometry.subGeometries) {
@@ -259,6 +263,8 @@ package away3d.loaders.parsers
 
 		private function applySkinController(geometry : Geometry, mesh : DAEMesh, skin : DAESkin, skeleton : Skeleton) : void
 		{
+			trace(" + applySkinController");
+			
 			var sub : CompactSubGeometry;
 			var skinned_sub_geom : SkinnedSubGeometry;
 			var primitive : DAEPrimitive;
@@ -301,6 +307,8 @@ package away3d.loaders.parsers
 
 		private function parseAnimationInfo() : DAEAnimationInfo
 		{
+			trace(" + parseAnimationInfo");
+			
 			var info : DAEAnimationInfo = new DAEAnimationInfo();
 			info.minTime = Number.MAX_VALUE;
 			info.maxTime = -info.minTime;
@@ -332,8 +340,12 @@ package away3d.loaders.parsers
 			return library;
 		}
 
-		private function parseSceneGraph(node : DAENode, parent : ObjectContainer3D = null) : void
+		private function parseSceneGraph(node : DAENode, parent : ObjectContainer3D = null, tab:String = ""):void
 		{
+			var _tab:String = tab + "-";
+			
+			trace(_tab + node.name);
+			
 			var container : ObjectContainer3D;
 
 			if (node.type != "JOINT") {
@@ -343,15 +355,18 @@ package away3d.loaders.parsers
 				processGeometries(node, container);
 				processControllers(node, container);
 
-				if (parent) parent.addChild(container);
+				if (parent) 
+					parent.addChild(container);
 			}
-
+			
 			for (var i : uint = 0; i < node.nodes.length; i++)
-				parseSceneGraph(node.nodes[i], container);
+				parseSceneGraph(node.nodes[i], container, _tab);
 		}
 
 		private function processController(controller : DAEController, instance : DAEInstanceController) : Geometry
 		{
+			trace(" + processController:" + controller.name);
+			
 			var geometry : Geometry;
 			if (!controller) return null;
 
@@ -366,6 +381,8 @@ package away3d.loaders.parsers
 
 		private function processControllerMorph(controller : DAEController, instance : DAEInstanceController) : Geometry
 		{
+			trace(" + processControllerMorph:" + controller.name);
+			
 			var morph : DAEMorph = controller.morph;
 
 			if (!base) base = processController(_libControllers[morph.source], instance);
@@ -405,6 +422,8 @@ package away3d.loaders.parsers
 
 		private function processControllerSkin(controller : DAEController, instance : DAEInstanceController) : Geometry
 		{
+			trace(" + processControllerSkin:" + controller.name);
+			
 			var geometry : Geometry = getGeometryByName(controller.skin.source);
 
 			if (!geometry)
@@ -417,12 +436,18 @@ package away3d.loaders.parsers
 			applySkinBindShape(geometry, controller.skin);
 			applySkinController(geometry, daeGeometry.mesh, controller.skin, skeleton);
 			controller.skin.userData = skeleton;
+			
+			finalizeAsset(skeleton);
 
 			return geometry;
 		}
 
+		private var animationSet : SkeletonAnimationSet;
+		
 		private function processControllers(node : DAENode, container : ObjectContainer3D) : void
 		{
+			trace(" + processControllers:" + node.name);
+			
 			if (!node.instance_controllers || node.instance_controllers.length == 0) return;
 
 			var instance : DAEInstanceController;
@@ -434,7 +459,7 @@ package away3d.loaders.parsers
 			var skeleton : Skeleton;
 			var clip : SkeletonClipNode;
 			//var anim:SkeletonAnimation;
-			var animationSet : SkeletonAnimationSet;
+			
 			var i : uint, j : uint;
 			var hasMaterial : Boolean;
 			var weights : uint;
@@ -502,8 +527,17 @@ package away3d.loaders.parsers
 				finalizeAsset(animationSet);
 		}
 
+		private var clip : SkeletonClipNode;
+		
 		private function processSkinAnimation(skin : DAESkin, mesh : Mesh, skeleton : Skeleton) : SkeletonClipNode
 		{
+			trace(" + processSkinAnimation:" + mesh.name);
+			
+			if(!clip)
+				clip = new SkeletonClipNode();
+			else
+				return clip;
+			
 			//var useGPU : Boolean = _configFlags & CONFIG_USE_GPU ? true : false;
 			//var animation : SkeletonAnimation = new SkeletonAnimation(skeleton, skin.maxBones, useGPU);
 			var animated : Boolean = isAnimatedSkeleton(skeleton);
@@ -513,7 +547,7 @@ package away3d.loaders.parsers
 
 			var t : Number = 0;
 			var i : uint, j : uint;
-			var clip : SkeletonClipNode = new SkeletonClipNode();
+			
 			//mesh.geometry.animation = animation;
 			var skeletonPose : SkeletonPose;
 			var identity : Matrix3D;
@@ -568,6 +602,8 @@ package away3d.loaders.parsers
 
 		private function processGeometries(node : DAENode, container : ObjectContainer3D) : void
 		{
+			trace(" + processGeometries:" + node.name);
+			
 			var instance : DAEInstanceGeometry;
 			var daeGeometry : DAEGeometry;
 			var effects : Vector.<DAEEffect>;
@@ -626,9 +662,13 @@ package away3d.loaders.parsers
 
 			return effects;
 		}
-
+		
+		private var skeleton : Skeleton;
+		
 		private function parseSkeleton(instance_controller : DAEInstanceController) : Skeleton
 		{
+			trace(" + parseSkeleton:" + instance_controller);
+			
 			if (!instance_controller.skeleton.length) return null;
 
 			var controller : DAEController = _libControllers[instance_controller.url] as DAEController;
@@ -636,18 +676,24 @@ package away3d.loaders.parsers
 			var skeletonRoot : DAENode = _root.findNodeById(skeletonId) || _root.findNodeBySid(skeletonId);
 
 			if (!skeletonRoot) return null;
-
-			var skeleton : Skeleton = new Skeleton();
-			skeleton.joints = new Vector.<SkeletonJoint>(controller.skin.joints.length, true);
-			parseSkeletonHierarchy(skeletonRoot, controller.skin, skeleton);
-
-			finalizeAsset(skeleton);
+			
+			if(!skeleton)
+			{
+				skeleton = new Skeleton();
+				skeleton.joints = new Vector.<SkeletonJoint>(controller.skin.joints.length, true);
+			
+				parseSkeletonHierarchy(skeletonRoot, controller.skin, skeleton);
+			}
 
 			return skeleton;
 		}
 
-		private function parseSkeletonHierarchy(node : DAENode, skin : DAESkin, skeleton : Skeleton, parent : int = -1) : void
+		private function parseSkeletonHierarchy(node : DAENode, skin : DAESkin, skeleton : Skeleton, parent : int = -1, tab:String = "") : void
 		{
+			var _tab:String = tab + "-";
+			
+			trace(_tab +"[" + node.id + node.sid + "]");
+			
 			var jointIndex : uint = skin.jointSourceType == "IDREF_array" ? skin.getJointIndex(node.id) : skin.getJointIndex(node.sid);
 			if (jointIndex < 0) return;
 
@@ -669,7 +715,7 @@ package away3d.loaders.parsers
 
 			for (var i : uint = 0; i < node.nodes.length; i++) {
 				try {
-					parseSkeletonHierarchy(node.nodes[i], skin, skeleton, jointIndex);
+					parseSkeletonHierarchy(node.nodes[i], skin, skeleton, jointIndex, _tab);
 				} catch (e : Error) {
 					trace(e.message);
 				}
@@ -1102,8 +1148,8 @@ class DAEVertex
 	public var uvx2 : Number;
 	public var uvy2 : Number;
 	public var numTexcoordSets : uint = 0;
-	public var index : uint = NaN;
-	public var daeIndex : uint = NaN;
+	public var index : uint = 0;
+	public var daeIndex : uint = 0;
 
 	public function DAEVertex(numTexcoordSets : uint)
 	{
