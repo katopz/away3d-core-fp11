@@ -519,7 +519,6 @@ package away3d.loaders.parsers
 
 				finalizeAsset(mesh);
 
-
 				break;
 			}
 
@@ -542,7 +541,7 @@ package away3d.loaders.parsers
 			//var animation : SkeletonAnimation = new SkeletonAnimation(skeleton, skin.maxBones, useGPU);
 			var animated : Boolean = isAnimatedSkeleton(skeleton);
 			var duration : Number = _animationInfo.numFrames == 0 ? 1.0 : _animationInfo.maxTime - _animationInfo.minTime;
-			var numFrames : int = Math.max(_animationInfo.numFrames, (animated ? 50 : 2));
+			var numFrames : int = _animationInfo.numFrames;//Math.max(_animationInfo.numFrames, (animated ? 50 : 2));
 			var frameDuration : Number = duration / numFrames;
 
 			var t : Number = 0;
@@ -692,7 +691,7 @@ package away3d.loaders.parsers
 		{
 			var _tab:String = tab + "-";
 			
-			trace(_tab +"[" + node.id + node.sid + "]");
+			trace(_tab +"[" + node.id + ":" + node.sid + "]");
 			
 			var jointIndex : uint = skin.jointSourceType == "IDREF_array" ? skin.getJointIndex(node.id) : skin.getJointIndex(node.sid);
 			if (jointIndex < 0) return;

@@ -165,6 +165,8 @@ package away3d.animators.states
 				
 				_blendWeight = (time - frameTime) / durations[_currentFrame];
 			}
+			trace("_currentFrame:"+_currentFrame);
+			trace("_nextFrame:"+_nextFrame);
 		}
 		
 		private function notifyPlaybackComplete():void

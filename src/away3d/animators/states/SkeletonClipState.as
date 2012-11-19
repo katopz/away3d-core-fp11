@@ -149,35 +149,43 @@ package away3d.animators.states
 			var totalDelta : Vector3D = _skeletonClipNode.totalDelta;
 			
 			// jumping back, need to reset position
-			if ((_timeDir > 0 && _nextFrame < _oldFrame) || (_timeDir < 0 && _nextFrame > _oldFrame)) {
-				_rootPos.x -= totalDelta.x*_timeDir;
-				_rootPos.y -= totalDelta.y*_timeDir;
-				_rootPos.z -= totalDelta.z*_timeDir;
-			}
-			
-			var dx : Number = _rootPos.x;
-			var dy : Number = _rootPos.y;
-			var dz : Number = _rootPos.z;
-			
-			if (_skeletonClipNode.stitchFinalFrame && _nextFrame == _skeletonClipNode.lastFrame) {
-				p1 = _frames[0].jointPoses[0].translation;
-				p2 = _frames[1].jointPoses[0].translation;
-				p3 = _currentPose.jointPoses[0].translation;
+			if ((_timeDir > 0 && _nextFrame < _oldFrame) || (_timeDir < 0 && _nextFrame > _oldFrame)) 
+			{
+				// i don't think we need this?
+				//_rootPos.x -= totalDelta.x*_timeDir;
+				//_rootPos.y -= totalDelta.y*_timeDir;
+				//_rootPos.z -= totalDelta.z*_timeDir;
 				
-				_rootPos.x = p3.x + p1.x + _blendWeight*(p2.x - p1.x);
-				_rootPos.y = p3.y + p1.y + _blendWeight*(p2.y - p1.y);
-				_rootPos.z = p3.z + p1.z + _blendWeight*(p2.z - p1.z);
-			} else {
-				p1 = _currentPose.jointPoses[0].translation;
-				p2 = _frames[_nextFrame].jointPoses[0].translation; //cover the instances where we wrap the pose but still want the final frame translation values
-				_rootPos.x = p1.x + _blendWeight*(p2.x - p1.x);
-				_rootPos.y = p1.y + _blendWeight*(p2.y - p1.y);
-				_rootPos.z = p1.z + _blendWeight*(p2.z - p1.z);
+				_rootDelta.x = 0;
+				_rootDelta.y = 0;
+				_rootDelta.z = 0;
 			}
-			
-			_rootDelta.x = _rootPos.x - dx;
-			_rootDelta.y = _rootPos.y - dy;
-			_rootDelta.z = _rootPos.z - dz;
+			else
+			{
+				var dx : Number = _rootPos.x;
+				var dy : Number = _rootPos.y;
+				var dz : Number = _rootPos.z;
+				
+				if (_skeletonClipNode.stitchFinalFrame && _nextFrame == _skeletonClipNode.lastFrame) {
+					p1 = _frames[0].jointPoses[0].translation;
+					p2 = _frames[1].jointPoses[0].translation;
+					p3 = _currentPose.jointPoses[0].translation;
+					
+					_rootPos.x = p3.x + p1.x + _blendWeight*(p2.x - p1.x);
+					_rootPos.y = p3.y + p1.y + _blendWeight*(p2.y - p1.y);
+					_rootPos.z = p3.z + p1.z + _blendWeight*(p2.z - p1.z);
+				} else if(_nextFrame > 0){
+					p1 = _currentPose.jointPoses[0].translation;
+					p2 = _frames[_nextFrame].jointPoses[0].translation; //cover the instances where we wrap the pose but still want the final frame translation values
+					_rootPos.x = p1.x + _blendWeight*(p2.x - p1.x);
+					_rootPos.y = p1.y + _blendWeight*(p2.y - p1.y);
+					_rootPos.z = p1.z + _blendWeight*(p2.z - p1.z);
+				}
+				
+				_rootDelta.x = _rootPos.x - dx;
+				_rootDelta.y = _rootPos.y - dy;
+				_rootDelta.z = _rootPos.z - dz;
+			}
 			
 			_oldFrame = _nextFrame;
 		}
