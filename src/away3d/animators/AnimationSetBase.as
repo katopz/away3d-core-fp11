@@ -120,6 +120,8 @@ package away3d.animators
 		 */
 		public function addAnimation(node:AnimationNodeBase):void
 		{
+			trace(" + addAnimation : " + node.name);
+			
 			if (_animationDictionary[node.name])
 				throw new AnimationSetError("root node name '" + node.name + "' already exists in the set");
 			

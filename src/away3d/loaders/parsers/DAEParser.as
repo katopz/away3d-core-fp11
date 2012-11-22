@@ -214,6 +214,7 @@ package away3d.loaders.parsers
 					break;
 
 				case DAEParserState.PARSE_ANIMATIONS:
+					finalizeAsset(clip);
 					_parseState = DAEParserState.PARSE_COMPLETE;
 					break;
 
@@ -496,34 +497,36 @@ package away3d.loaders.parsers
 				if (controller.skin && controller.skin.userData is Skeleton) {
 
 					if (!animationSet)
+					{
 						animationSet = new SkeletonAnimationSet(controller.skin.maxBones);
 
-					skeleton = controller.skin.userData as Skeleton;
-
-					clip = processSkinAnimation(controller.skin, mesh, skeleton);
-					clip.looping = true;
-
-					weights = SkinnedSubGeometry(mesh.geometry.subGeometries[0]).jointIndexData.length;
-					jpv = weights / (mesh.geometry.subGeometries[0].vertexData.length / 3);
-					//anim = new SkeletonAnimation(skeleton, jpv);
-
-					//var state:SkeletonAnimationState = SkeletonAnimationState(mesh.animationState);
-					//animator = new SmoothSkeletonAnimator(state);
-					//SmoothSkeletonAnimator(animator).addSequence(SkeletonAnimationSequence(sequence));
-					clip.name = "node_" + _rootNodes.length;
-					animationSet.addAnimation(clip);
-
-					//_animators.push(animator);
-					_rootNodes.push(clip);
+						skeleton = controller.skin.userData as Skeleton;
+	
+						clip = processSkinAnimation(controller.skin, mesh, skeleton);
+						clip.looping = true;
+	
+						weights = SkinnedSubGeometry(mesh.geometry.subGeometries[0]).jointIndexData.length;
+						jpv = weights / (mesh.geometry.subGeometries[0].vertexData.length / 3);
+						//anim = new SkeletonAnimation(skeleton, jpv);
+	
+						//var state:SkeletonAnimationState = SkeletonAnimationState(mesh.animationState);
+						//animator = new SmoothSkeletonAnimator(state);
+						//SmoothSkeletonAnimator(animator).addSequence(SkeletonAnimationSequence(sequence));
+						clip.name = "node_" + _rootNodes.length;
+						animationSet.addAnimation(clip);
+	
+						//_animators.push(animator);
+						_rootNodes.push(clip);
+					}
 				}
 
 				finalizeAsset(mesh);
+				
+				if (animationSet)
+					finalizeAsset(animationSet);
 
 				break;
 			}
-
-			if (animationSet)
-				finalizeAsset(animationSet);
 		}
 
 		private var clip : SkeletonClipNode;
@@ -554,10 +557,12 @@ package away3d.loaders.parsers
 			var node : DAENode;
 			var pose : JointPose;
 
-			for (i = 0; i < numFrames; i++) {
+			for (i = 0; i < numFrames; i++) 
+			{
 				skeletonPose = new SkeletonPose();
 
-				for (j = 0; j < skin.joints.length; j++) {
+				for (j = 0; j < skin.joints.length; j++) 
+				{
 					node = _root.findNodeById(skin.joints[j]) || _root.findNodeBySid(skin.joints[j]);
 					pose = new JointPose();
 					matrix = node.getAnimatedMatrix(t) || node.matrix;
@@ -577,7 +582,7 @@ package away3d.loaders.parsers
 				clip.addFrame(skeletonPose, frameDuration * 1000);
 			}
 
-			finalizeAsset(clip);
+			////finalizeAsset(clip);
 
 			return clip;
 		}
