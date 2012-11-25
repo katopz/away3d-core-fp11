@@ -436,6 +436,29 @@ package away3d.animators
 					t.y = tr.y;
 					t.z = tr.z;
 				}
+			}
+			
+			for (i = 0; i < len; ++i) 
+			{
+				globalJointPose = globalPoses[i];// ||= new JointPose();
+				joint = joints[i];
+				parentIndex = joint.parentIndex;
+				pose = jointPoses[i];
+				
+				q = globalJointPose.orientation;
+				t = globalJointPose.translation;
+				
+				if (parentIndex < 0) {
+					tr = pose.translation;
+					or = pose.orientation;
+					q.x = or.x;
+					q.y = or.y;
+					q.z = or.z;
+					q.w = or.w;
+					t.x = tr.x;
+					t.y = tr.y;
+					t.z = tr.z;
+				}
 				else {
 					// append parent pose
 					parentPose = globalPoses[parentIndex];
