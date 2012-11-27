@@ -544,7 +544,7 @@ package away3d.loaders.parsers
 			//var animation : SkeletonAnimation = new SkeletonAnimation(skeleton, skin.maxBones, useGPU);
 			var animated : Boolean = isAnimatedSkeleton(skeleton);
 			var duration : Number = _animationInfo.numFrames == 0 ? 1.0 : _animationInfo.maxTime - _animationInfo.minTime;
-			var numFrames : int = _animationInfo.numFrames;//Math.max(_animationInfo.numFrames, (animated ? 50 : 2));
+			var numFrames : int = animated?_animationInfo.numFrames:2;//Math.max(_animationInfo.numFrames, (animated ? 50 : 2));
 			var frameDuration : Number = duration / numFrames;
 
 			var t : Number = 0;
