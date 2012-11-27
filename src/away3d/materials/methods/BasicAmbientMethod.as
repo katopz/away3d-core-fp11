@@ -2,13 +2,9 @@ package away3d.materials.methods
 {
 	import away3d.arcane;
 	import away3d.core.managers.Stage3DProxy;
-	import away3d.materials.methods.MethodVO;
 	import away3d.materials.compilation.ShaderRegisterCache;
 	import away3d.materials.compilation.ShaderRegisterElement;
 	import away3d.textures.Texture2DBase;
-	
-	import flash.display3D.Context3D;
-	import flash.display3D.Context3DProgramType;
 
 	use namespace arcane;
 
@@ -86,9 +82,13 @@ package away3d.materials.methods
 		
 		public function set texture(value : Texture2DBase) : void
 		{
-			if (Boolean(value) != _useTexture ||
-				(value && _texture && (value.hasMipMaps != _texture.hasMipMaps || value.format != _texture.format)))
-				invalidateShaderProgram();
+			if(value)
+			{
+				if (Boolean(value) != _useTexture ||
+					(value && _texture && value.hasMipMaps != _texture.hasMipMaps || value.format != _texture.format))
+					invalidateShaderProgram();
+			}
+			
 			_useTexture = Boolean(value);
 			_texture = value;
 		}

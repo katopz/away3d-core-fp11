@@ -86,9 +86,12 @@ package away3d.materials.methods
 
 		public function set texture(value : Texture2DBase) : void
 		{
-			if (Boolean(value) != _useTexture ||
-				(value && _texture && (value.hasMipMaps != _texture.hasMipMaps || value.format != _texture.format)))
-				invalidateShaderProgram();
+			if(value)
+			{
+				if (Boolean(value) != _useTexture ||
+					(value && _texture && value.hasMipMaps != _texture.hasMipMaps || value.format != _texture.format))
+					invalidateShaderProgram();
+			}
 
 			_useTexture = Boolean(value);
 			_texture = value;
@@ -239,10 +242,11 @@ package away3d.materials.methods
 
 			// incorporate input from ambient
 			if (vo.numLights > 0) {
-				if (_shadowRegister)
-					code += applyShadow(vo, regCache);
 				t = regCache.getFreeFragmentVectorTemp();
 				regCache.addFragmentTempUsages(t, 1);
+
+				if (_shadowRegister)
+					code += "mul " + _totalLightColorReg + ".xyz, " + _totalLightColorReg + ".xyz, " + _shadowRegister + ".w\n";
 			} else {
 				t = targetReg;
 			}
@@ -287,11 +291,6 @@ package away3d.materials.methods
 			regCache.removeFragmentTempUsage(t);
 			
 			return code;
-		}
-
-		protected function applyShadow(vo : MethodVO, regCache : ShaderRegisterCache) : String
-		{
-			return "mul " + _totalLightColorReg + ".xyz, " + _totalLightColorReg + ".xyz, " + _shadowRegister + ".w\n";
 		}
 
 		/**
