@@ -32,6 +32,7 @@ package away3d.core.pick
 	{
 		private var _stage3DProxy:Stage3DProxy;
 		private var _context:Context3D;
+		private var _onlyMouseEnabled:Boolean = true;
 		
 		private var _objectProgram3D : Program3D;
 		private var _triangleProgram3D : Program3D;
@@ -56,6 +57,19 @@ package away3d.core.pick
 		private var _rayDir : Vector3D = new Vector3D();
 		private var _potentialFound : Boolean;
 		private static const MOUSE_SCISSOR_RECT : Rectangle = new Rectangle(0, 0, 1, 1);
+		
+		/**
+		 * @inheritDoc
+		 */
+		public function get onlyMouseEnabled():Boolean
+		{
+			return _onlyMouseEnabled;
+		}
+		
+		public function set onlyMouseEnabled(value:Boolean):void
+		{
+			_onlyMouseEnabled = value;
+		}
 		
 		/**
 		 * Creates a new <code>ShaderPicker</code> object.
@@ -148,7 +162,7 @@ package away3d.core.pick
 			if (!_objectProgram3D) initObjectProgram3D();
 			_context.setBlendFactors(Context3DBlendFactor.ONE, Context3DBlendFactor.ZERO);
 			_context.setDepthTest(true, Context3DCompareMode.LESS);
-			_stage3DProxy.setProgram(_objectProgram3D);
+			_context.setProgram(_objectProgram3D);
 			_context.setProgramConstantsFromVector(Context3DProgramType.VERTEX, 4, _viewportData, 1);
 			drawRenderables(entityCollector.opaqueRenderableHead, camera);
 			drawRenderables(entityCollector.blendedRenderableHead, camera);
@@ -161,13 +175,15 @@ package away3d.core.pick
 		 */
 		private function drawRenderables(item : RenderableListItem, camera : Camera3D) : void
 		{
+			var matrix : Matrix3D = Matrix3DUtils.CALCULATION_MATRIX;
 			var renderable : IRenderable;
+			var viewProjection : Matrix3D = camera.viewProjection;
 
 			while (item) {
 				renderable = item.renderable;
 
 				// it's possible that the renderable was already removed from the scene
-				if (!renderable.sourceEntity.scene || !renderable.mouseEnabled) {
+				if (!renderable.sourceEntity.scene || (!renderable.mouseEnabled && _onlyMouseEnabled)) {
 					item = item.next;
 					continue;
 				}
@@ -181,7 +197,9 @@ package away3d.core.pick
 				_id[1] = (_interactiveId >> 8)/255;	    // on green channel
 				_id[2] = (_interactiveId & 0xff)/255;  	// on blue channel
 
-				_context.setProgramConstantsFromMatrix(Context3DProgramType.VERTEX, 0, renderable.modelViewProjection, true);
+				matrix.copyFrom(renderable.sceneTransform);
+				matrix.append(viewProjection);
+				_context.setProgramConstantsFromMatrix(Context3DProgramType.VERTEX, 0, matrix, true);
 				_context.setProgramConstantsFromVector(Context3DProgramType.FRAGMENT, 0, _id, 1);
 				renderable.activateVertexBuffer(0, _stage3DProxy);
 				_context.drawTriangles(renderable.getIndexBuffer(_stage3DProxy), 0, renderable.numTriangles);
@@ -263,8 +281,9 @@ package away3d.core.pick
 			var col : uint;
 			var scX : Number, scY : Number, scZ : Number;
 			var offsX : Number, offsY : Number, offsZ : Number;
-			var localViewProjection : Matrix3D = _hitRenderable.modelViewProjection;
-
+			var localViewProjection : Matrix3D = Matrix3DUtils.CALCULATION_MATRIX;
+			localViewProjection.copyFrom(_hitRenderable.sceneTransform);
+			localViewProjection.append(camera.viewProjection);
 			if (!_triangleProgram3D) initTriangleProgram3D();
 
 			_boundOffsetScale[4] = scX = 1/(entity.maxX-entity.minX);
@@ -274,7 +293,7 @@ package away3d.core.pick
 			_boundOffsetScale[1] = offsY = -entity.minY;
 			_boundOffsetScale[2] = offsZ = -entity.minZ;
 
-			_stage3DProxy.setProgram(_triangleProgram3D);
+			_context.setProgram(_triangleProgram3D);
 			_context.clear(0, 0, 0, 0, 1, 0, Context3DClearMask.DEPTH);
 			_context.setScissorRectangle(MOUSE_SCISSOR_RECT);
 			_context.setProgramConstantsFromMatrix(Context3DProgramType.VERTEX, 0, localViewProjection, true);

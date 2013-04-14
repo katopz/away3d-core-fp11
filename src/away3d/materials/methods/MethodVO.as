@@ -1,8 +1,7 @@
-package away3d.materials.methods {
-	import flash.display3D.Context3DTextureFormat;
+package away3d.materials.methods
+{
 	public class MethodVO
 	{
-		public var vertexConstantsOffset : int;
 		public var vertexData : Vector.<Number>;
 		public var fragmentData : Vector.<Number>;
 
@@ -29,10 +28,14 @@ package away3d.materials.methods {
 		public var needsGlobalFragmentPos : Boolean;
 
 		public var numLights : int;
+		public var useLightFallOff : Boolean = true;
+
+		public function MethodVO() {
+		
+		}
 
 		public function reset() : void
 		{
-			vertexConstantsOffset = 0;
 			texturesIndex = -1;
 			vertexConstantsIndex = -1;
 			fragmentConstantsIndex = -1;
@@ -51,6 +54,7 @@ package away3d.materials.methods {
 			needsGlobalFragmentPos = false;
 
 			numLights = 0;
+			useLightFallOff = true;
 		}
 	}
 }

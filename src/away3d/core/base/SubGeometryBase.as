@@ -496,6 +496,10 @@ package away3d.core.base
 			throw new AbstractMethodError();
 		}
 
+		public function get vertexPositionData():Vector.<Number> {
+			throw new AbstractMethodError();
+		}
+
 		public function get vertexNormalData() : Vector.<Number>
 		{
 			throw new AbstractMethodError();
@@ -669,6 +673,7 @@ package away3d.core.base
 					vector.y = normals[i1];
 					vector.z = normals[i2];
 					vector = invTranspose.deltaTransformVector(vector);
+					vector.normalize();
 					normals[ni0] = vector.x;
 					normals[i1] = vector.y;
 					normals[i2] = vector.z;
@@ -684,6 +689,7 @@ package away3d.core.base
 					vector.y = tangents[i1];
 					vector.z = tangents[i2];
 					vector = invTranspose.deltaTransformVector(vector);
+					vector.normalize();
 					tangents[ti0] = vector.x;
 					tangents[i1] = vector.y;
 					tangents[i2] = vector.z;

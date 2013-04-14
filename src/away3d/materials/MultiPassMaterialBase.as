@@ -47,13 +47,28 @@
 		private var _specularMethod : BasicSpecularMethod = new BasicSpecularMethod();
 
 		private var _screenPassesInvalid : Boolean = true;
+		private var _enableLightFallOff : Boolean = true;
 
 		/**
-		 * Creates a new DefaultMaterialBase object.
+		 * Creates a new MultiPassMaterialBase object.
 		 */
 		public function MultiPassMaterialBase()
 		{
 			super();
+		}
+
+		/**
+		 * Whether or not to use fallOff and radius properties for lights.
+		 */
+		public function get enableLightFallOff() : Boolean
+		{
+			return _enableLightFallOff;
+		}
+
+		public function set enableLightFallOff(value : Boolean) : void
+		{
+			if (_enableLightFallOff != value) invalidateScreenPasses();
+			_enableLightFallOff = value;
 		}
 
 		/**
@@ -86,14 +101,14 @@
 			invalidateScreenPasses();
 		}
 
-		arcane override function activateForDepth(stage3DProxy : Stage3DProxy, camera : Camera3D, distanceBased : Boolean = false, textureRatioX : Number = 1, textureRatioY : Number = 1) : void
+		arcane override function activateForDepth(stage3DProxy : Stage3DProxy, camera : Camera3D, distanceBased : Boolean = false) : void
 		{
 			if (distanceBased)
 				_distancePass.alphaMask = _diffuseMethod.texture;
 			else
 				_depthPass.alphaMask = _diffuseMethod.texture;
 
-			super.activateForDepth(stage3DProxy, camera, distanceBased, textureRatioX, textureRatioY);
+			super.activateForDepth(stage3DProxy, camera, distanceBased);
 		}
 
 		public function get specularLightSources() : uint
@@ -423,11 +438,11 @@
 			}
 		}
 
-		override arcane function activatePass(index : uint, stage3DProxy : Stage3DProxy, camera : Camera3D, textureRatioX : Number, textureRatioY : Number) : void
+		override arcane function activatePass(index : uint, stage3DProxy : Stage3DProxy, camera : Camera3D) : void
 		{
 			if (index == 0)
 				stage3DProxy._context3D.setBlendFactors(Context3DBlendFactor.ONE, Context3DBlendFactor.ZERO);
-			super.activatePass(index, stage3DProxy, camera, textureRatioX, textureRatioY);
+			super.activatePass(index, stage3DProxy, camera);
 		}
 
 		override arcane function deactivate(stage3DProxy : Stage3DProxy) : void
@@ -465,33 +480,40 @@
 
 		private function setBlendAndCompareModes() : void
 		{
+			var forceSeparateMVP : Boolean = _casterLightPass || _effectsPass;
+
 			if (_casterLightPass) {
 				_casterLightPass.setBlendMode(BlendMode.NORMAL, false);
 				_casterLightPass.depthCompareMode = depthCompareMode;
+				_casterLightPass.forceSeparateMVP = forceSeparateMVP;
 			}
 
 			if (_nonCasterLightPasses) {
 				var firstAdditiveIndex : int = 0;
 				if (!_casterLightPass) {
+					_nonCasterLightPasses[0].forceSeparateMVP = forceSeparateMVP;
 					_nonCasterLightPasses[0].setBlendMode(BlendMode.NORMAL, false);
 					_nonCasterLightPasses[0].depthCompareMode = depthCompareMode;
 					firstAdditiveIndex = 1;
 				}
 				for (var i : int = firstAdditiveIndex; i < _nonCasterLightPasses.length; ++i) {
+					_nonCasterLightPasses[i].forceSeparateMVP = forceSeparateMVP;
 					_nonCasterLightPasses[i].setBlendMode(BlendMode.ADD, false);
-					_nonCasterLightPasses[i].depthCompareMode = Context3DCompareMode.EQUAL;
+					_nonCasterLightPasses[i].depthCompareMode = Context3DCompareMode.LESS_EQUAL;
 				}
 			}
 
 			if (_casterLightPass || _nonCasterLightPasses) {
 				if (_effectsPass) {
-					_effectsPass.depthCompareMode = Context3DCompareMode.EQUAL;
+					_effectsPass.depthCompareMode = Context3DCompareMode.LESS_EQUAL;
 					_effectsPass.setBlendMode(BlendMode.NORMAL, true);
+					_effectsPass.forceSeparateMVP = forceSeparateMVP;
 				}
 			}
 			else if (_effectsPass) {
 				_effectsPass.depthCompareMode = depthCompareMode;
 				_effectsPass.setBlendMode(BlendMode.NORMAL, false);
+				_effectsPass.forceSeparateMVP = false;
 			}
 		}
 
@@ -503,6 +525,7 @@
 			_casterLightPass.normalMethod = null;
 			_casterLightPass.specularMethod = null;
 			_casterLightPass.shadowMethod = null;
+			_casterLightPass.enableLightFallOff = _enableLightFallOff;
 			_casterLightPass.lightPicker = new StaticLightPicker([_shadowMethod.castingLight]);
 			_casterLightPass.shadowMethod = _shadowMethod;
 			_casterLightPass.diffuseMethod = _diffuseMethod;
@@ -540,6 +563,7 @@
 			_nonCasterLightPasses = new Vector.<LightingPass>();
 			while (dirLightOffset < numDirLights || pointLightOffset < numPointLights || probeOffset < numLightProbes) {
 				pass = new LightingPass(this);
+				pass.enableLightFallOff = _enableLightFallOff;
 				pass.includeCasters = _shadowMethod == null;
 				pass.directionalLightsOffset = dirLightOffset;
 				pass.pointLightsOffset = pointLightOffset;
@@ -585,6 +609,7 @@
 		private function initEffectsPass() : SuperShaderPass
 		{
 			_effectsPass ||= new SuperShaderPass(this);
+			_effectsPass.enableLightFallOff = _enableLightFallOff;
 			if (numLights == 0) {
 				_effectsPass.diffuseMethod = null;
 				_effectsPass.diffuseMethod = _diffuseMethod;

@@ -116,7 +116,7 @@ package away3d.animators.states
 			{
 				var dataOffset:uint = _particleColorNode.dataOffset;
 				if (_usesCycle) {
-					animationRegisterCache.setFragmentConst(animationRegisterCache.getRegisterIndex(_animationNode, ParticleColorNode.CYCLE_INDEX), _cycleData.x, _cycleData.y, _cycleData.z, _cycleData.w);
+					animationRegisterCache.setVertexConst(animationRegisterCache.getRegisterIndex(_animationNode, ParticleColorNode.CYCLE_INDEX), _cycleData.x, _cycleData.y, _cycleData.z, _cycleData.w);
 				}
 				
 				if (_usesMultiplier)
@@ -127,8 +127,8 @@ package away3d.animators.states
 						animationSubGeometry.activateVertexBuffer(animationRegisterCache.getRegisterIndex(_animationNode, ParticleColorNode.DELTA_MULTIPLIER_INDEX), dataOffset, stage3DProxy, Context3DVertexBufferFormat.FLOAT_4);
 						dataOffset += 4;
 					} else {
-						animationRegisterCache.setFragmentConst(animationRegisterCache.getRegisterIndex(_animationNode, ParticleColorNode.START_MULTIPLIER_INDEX), _startMultiplierData.x, _startMultiplierData.y, _startMultiplierData.z, _startMultiplierData.w);
-						animationRegisterCache.setFragmentConst(animationRegisterCache.getRegisterIndex(_animationNode, ParticleColorNode.DELTA_MULTIPLIER_INDEX), _deltaMultiplierData.x, _deltaMultiplierData.y, _deltaMultiplierData.z, _deltaMultiplierData.w);
+						animationRegisterCache.setVertexConst(animationRegisterCache.getRegisterIndex(_animationNode, ParticleColorNode.START_MULTIPLIER_INDEX), _startMultiplierData.x, _startMultiplierData.y, _startMultiplierData.z, _startMultiplierData.w);
+						animationRegisterCache.setVertexConst(animationRegisterCache.getRegisterIndex(_animationNode, ParticleColorNode.DELTA_MULTIPLIER_INDEX), _deltaMultiplierData.x, _deltaMultiplierData.y, _deltaMultiplierData.z, _deltaMultiplierData.w);
 					}
 				}
 				if (_usesOffset)
@@ -139,8 +139,8 @@ package away3d.animators.states
 						animationSubGeometry.activateVertexBuffer(animationRegisterCache.getRegisterIndex(_animationNode, ParticleColorNode.DELTA_OFFSET_INDEX), dataOffset, stage3DProxy, Context3DVertexBufferFormat.FLOAT_4);
 						dataOffset += 4;
 					} else {
-						animationRegisterCache.setFragmentConst(animationRegisterCache.getRegisterIndex(_animationNode, ParticleColorNode.START_OFFSET_INDEX), _startOffsetData.x, _startOffsetData.y, _startOffsetData.z, _startOffsetData.w);
-						animationRegisterCache.setFragmentConst(animationRegisterCache.getRegisterIndex(_animationNode, ParticleColorNode.DELTA_OFFSET_INDEX), _deltaOffsetData.x, _deltaOffsetData.y, _deltaOffsetData.z, _deltaOffsetData.w);
+						animationRegisterCache.setVertexConst(animationRegisterCache.getRegisterIndex(_animationNode, ParticleColorNode.START_OFFSET_INDEX), _startOffsetData.x, _startOffsetData.y, _startOffsetData.z, _startOffsetData.w);
+						animationRegisterCache.setVertexConst(animationRegisterCache.getRegisterIndex(_animationNode, ParticleColorNode.DELTA_OFFSET_INDEX), _deltaOffsetData.x, _deltaOffsetData.y, _deltaOffsetData.z, _deltaOffsetData.w);
 					}
 				}
 			}
@@ -148,11 +148,14 @@ package away3d.animators.states
 		
 		private function updateColorData():void
 		{
+			if (_usesCycle)
+			{
+				if (_cycleDuration <= 0)
+					throw(new Error("the cycle duration must be greater than zero"));
+				_cycleData = new Vector3D(Math.PI * 2 / _cycleDuration, _cyclePhase * Math.PI / 180, 0, 0);
+			}
 			if (_particleColorNode.mode == ParticlePropertiesMode.GLOBAL) {
 				if (_usesCycle) {
-					if (_cycleDuration <= 0)
-						throw(new Error("the cycle duration must be greater than zero"));
-					_cycleData = new Vector3D(Math.PI * 2 / _cycleDuration, _cyclePhase * Math.PI / 180, 0, 0);
 					if (_usesMultiplier) {
 						_startMultiplierData = new Vector3D((_startColor.redMultiplier + _endColor.redMultiplier) / 2, (_startColor.greenMultiplier + _endColor.greenMultiplier) / 2, (_startColor.blueMultiplier + _endColor.blueMultiplier) / 2, (_startColor.alphaMultiplier + _endColor.alphaMultiplier) / 2);
 						_deltaMultiplierData = new Vector3D((_endColor.redMultiplier - _startColor.redMultiplier) / 2, (_endColor.greenMultiplier - _startColor.greenMultiplier) / 2, (_endColor.blueMultiplier - _startColor.blueMultiplier) / 2, (_endColor.alphaMultiplier - _startColor.alphaMultiplier) / 2);

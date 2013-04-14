@@ -1,7 +1,14 @@
 package away3d.core.partition
 {
+	import away3d.core.math.Plane3D;
+
+	import flash.geom.Matrix3D;
+	import flash.geom.Vector3D;
+	
 	import away3d.arcane;
+	import away3d.bounds.BoundingVolumeBase;
 	import away3d.cameras.Camera3D;
+	import away3d.core.pick.PickingCollisionVO;
 	import away3d.core.traverse.PartitionTraverser;
 	import away3d.entities.Entity;
 
@@ -62,21 +69,23 @@ package away3d.core.partition
 			_parent = null;
 		}
 
+
+		override public function isInFrustum(planes : Vector.<Plane3D>, numPlanes : int) : Boolean
+		{
+			if (!_entity.isVisible) return false;
+
+			return _entity.worldBounds.isInFrustum(planes, numPlanes);
+		}
+
 		/**
 		 * @inheritDoc
 		 */
-		override protected function isInFrustumImpl(camera : Camera3D) : Boolean
+		override public function isIntersectingRay(rayPosition : Vector3D, rayDirection : Vector3D) : Boolean
 		{
-			if (_entity.isVisible == false) return false;
-
-			_entity.pushModelViewProjection(camera);
-			if (_entity.bounds.isInFrustum(_entity.getModelViewProjectionUnsafe())) {
-				return true;
-			}
-			else {
-				_entity.popModelViewProjection();
-				return false;
-			}
+			if (!_entity.isVisible) return false;
+			
+			return _entity.isIntersectingRay(rayPosition, rayDirection);
 		}
+
 	}
 }

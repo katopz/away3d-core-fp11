@@ -1,5 +1,4 @@
-package away3d.loaders.parsers
-{
+package away3d.loaders.parsers {
 	import away3d.animators.SkeletonAnimationSet;
 	import away3d.animators.data.JointPose;
 	import away3d.animators.data.Skeleton;
@@ -9,7 +8,6 @@ package away3d.loaders.parsers
 	import away3d.animators.nodes.SkeletonClipNode;
 	import away3d.arcane;
 	import away3d.containers.ObjectContainer3D;
-	import away3d.core.base.CompactSubGeometry;
 	import away3d.core.base.CompactSubGeometry;
 	import away3d.core.base.Geometry;
 	import away3d.core.base.SkinnedSubGeometry;
@@ -741,8 +739,12 @@ package away3d.loaders.parsers
 			if (diffuse && diffuse.texture && effect.surface) {
 				var image : DAEImage = _libImages[effect.surface.init_from];
 
-				if (isBitmapDataValid(image.resource.bitmapData)) {
+				if (image.resource !== null && isBitmapDataValid(image.resource.bitmapData)) {
 					mat = textureMaterial = buildDefaultMaterial(image.resource.bitmapData);
+					textureMaterial.alpha = transparency;
+				}
+				else {
+					mat = textureMaterial = buildDefaultMaterial();
 					textureMaterial.alpha = transparency;
 				}
 
@@ -884,7 +886,6 @@ package away3d.loaders.parsers
 
 	}
 }
-
 import away3d.loaders.parsers.DAEParser;
 
 import flash.geom.Matrix3D;
@@ -895,6 +896,7 @@ class DAEAnimationInfo
 	public var minTime : Number;
 	public var maxTime : Number;
 	public var numFrames : uint;
+	public function DAEAnimationInfo() {} 
 }
 
 class DAEElement
@@ -1614,6 +1616,8 @@ class DAEColor
 	public var g : Number;
 	public var b : Number;
 	public var a : Number;
+	
+	public function DAEColor() {}
 
 	public function get rgb() : uint
 	{
@@ -1635,6 +1639,7 @@ class DAETexture
 {
 	public var texture : String;
 	public var texcoord : String;
+	public function DAETexture() {}
 }
 
 class DAEColorOrTexture extends DAEElement
@@ -2271,6 +2276,7 @@ class DAEVertexWeight
 	public var vertex : uint;
 	public var joint : uint;
 	public var weight : Number;
+	public function DAEVertexWeight() {}
 }
 
 class DAESkin extends DAEElement

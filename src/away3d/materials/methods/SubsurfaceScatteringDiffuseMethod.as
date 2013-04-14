@@ -138,7 +138,7 @@ package away3d.materials.methods
 			var temp : ShaderRegisterElement = regCache.getFreeVertexVectorTemp();
 
 			toTexRegister = regCache.getFreeVertexConstant();
-			vo.secondaryVertexConstantsIndex = (toTexRegister.index - vo.vertexConstantsOffset)*4;
+			vo.secondaryVertexConstantsIndex = toTexRegister.index*4;
 
 			_lightProjVarying = regCache.getFreeVarying();
 			lightProjection = regCache.getFreeVertexConstant();
@@ -147,8 +147,7 @@ package away3d.materials.methods
 			regCache.getFreeVertexConstant();
 
 			code += "m44 " + temp+ ", vt0, " + lightProjection + "\n" +
-					"rcp " + temp+".w, " + temp+".w\n" +
-					"mul " + temp+".xyz, " + temp+".xyz, " + temp+".w\n" +
+					"div " + temp+".xyz, " + temp+".xyz, " + temp+".w\n" +
 					"mul " + temp+".xy, " + temp+".xy, " + toTexRegister+".xy\n" +
 					"add " + temp+".xy, " + temp+".xy, " + toTexRegister+".xx\n" +
 					"mov " + _lightProjVarying + ".xyz, " + temp+".xyz\n" +
@@ -219,7 +218,7 @@ package away3d.materials.methods
 			var depthMap : Texture = _depthPass.getDepthMap(renderable, stage3DProxy);
 			var projection : Matrix3D = _depthPass.getProjection(renderable);
 
-			stage3DProxy.setTextureAt(vo.secondaryTexturesIndex, depthMap);
+			stage3DProxy._context3D.setTextureAt(vo.secondaryTexturesIndex, depthMap);
 			projection.copyRawDataTo(vo.vertexData, vo.secondaryVertexConstantsIndex+4, true);
 		}
 

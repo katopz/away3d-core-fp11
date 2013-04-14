@@ -23,6 +23,7 @@ package away3d.materials.passes {
 	import flash.display3D.textures.TextureBase;
 	import flash.events.Event;
 	import flash.events.EventDispatcher;
+	import flash.geom.Matrix3D;
 	import flash.geom.Rectangle;
 
 	use namespace arcane;
@@ -58,7 +59,8 @@ package away3d.materials.passes {
 		
 		private var _srcBlend : String = Context3DBlendFactor.ONE;
 		private var _destBlend : String = Context3DBlendFactor.ZERO;
-		private var _enableBlending : Boolean;
+
+		protected var _enableBlending : Boolean;
 
 		private var _bothSides : Boolean;
 
@@ -80,13 +82,13 @@ package away3d.materials.passes {
 		private var _oldDepthStencil : Boolean;
 		private var _oldRect : Rectangle;
 
-		private static var _rttData : Vector.<Number>;
-
 		protected var _alphaPremultiplied : Boolean;
 		protected var _needFragmentAnimation:Boolean;
 		protected var _needUVAnimation:Boolean;
 		protected var _UVTarget:String;
 		protected var _UVSource:String;
+
+		private var _writeDepth : Boolean = true;
 		
 		public var animationRegisterCache:AnimationRegisterCache;
 		
@@ -100,7 +102,6 @@ package away3d.materials.passes {
 			_renderToTexture = renderToTexture;
 			_numUsedStreams = 1;
 			_numUsedVertexConstants = 5;
-			if (!_rttData) _rttData = new <Number>[1, 1, 1, 1];
 		}
 
 		/**
@@ -114,6 +115,19 @@ package away3d.materials.passes {
 		public function set material(value : MaterialBase) : void
 		{
 			_material = value;
+		}
+
+		/**
+		 * Indicate whether this pass should write to the depth buffer or not. Ignored when blending is enabled.
+		 */
+		public function get writeDepth() : Boolean
+		{
+			return _writeDepth;
+		}
+
+		public function set writeDepth(value : Boolean) : void
+		{
+			_writeDepth = value;
 		}
 
 		/**
@@ -274,16 +288,13 @@ package away3d.materials.passes {
 		}
 
 		/**
-		 * Renders an object to the current render target5.
+		 * Renders an object to the current render target.
 		 *
 		 * @private
 		 */
-		arcane function render(renderable : IRenderable, stage3DProxy : Stage3DProxy, camera : Camera3D) : void
+		arcane function render(renderable : IRenderable, stage3DProxy : Stage3DProxy, camera : Camera3D, viewProjection : Matrix3D) : void
 		{
-			var context : Context3D = stage3DProxy._context3D;
-			context.setProgramConstantsFromMatrix(Context3DProgramType.VERTEX, 0, renderable.getModelViewProjectionUnsafe(), true);
-			renderable.activateVertexBuffer(0, stage3DProxy);
-			context.drawTriangles(renderable.getIndexBuffer(stage3DProxy), 0, renderable.numTriangles);
+			throw new AbstractMethodError();
 		}
 
 		arcane function getVertexCode() : String
@@ -291,7 +302,7 @@ package away3d.materials.passes {
 			throw new AbstractMethodError();
 		}
 
-		arcane function getFragmentCode(code:String) : String
+		arcane function getFragmentCode(fragmentAnimatorCode:String) : String
 		{
 			throw new AbstractMethodError();
 		}
@@ -331,12 +342,12 @@ package away3d.materials.passes {
 			}
 		}
 
-		arcane function activate(stage3DProxy : Stage3DProxy, camera : Camera3D, textureRatioX : Number, textureRatioY : Number) : void
+		arcane function activate(stage3DProxy : Stage3DProxy, camera : Camera3D) : void
 		{
 			var contextIndex : int = stage3DProxy._stage3DIndex;
 			var context : Context3D = stage3DProxy._context3D;
 
-			context.setDepthTest(!_enableBlending, _depthCompareMode);
+			context.setDepthTest(_writeDepth && !_enableBlending, _depthCompareMode);
 			if (_enableBlending) context.setBlendFactors(_srcBlend, _destBlend);
 
 			if (_context3Ds[contextIndex] != context || !_program3Ds[contextIndex]) {
@@ -354,27 +365,20 @@ package away3d.materials.passes {
 			prevUsed = _previousUsedTexs[contextIndex];
 
 			for (i = _numUsedTextures; i < prevUsed; ++i)
-				stage3DProxy.setTextureAt(i, null);
+				context.setTextureAt(i, null);
 
 			if (_animationSet && !_animationSet.usesCPU)
 				_animationSet.activate(stage3DProxy, this);
-			
-			stage3DProxy.setProgram(_program3Ds[contextIndex]);
+
+			context.setProgram(_program3Ds[contextIndex]);
 
 			context.setCulling(_bothSides? Context3DTriangleFace.NONE : _defaultCulling);
 
 			if (_renderToTexture) {
-				_rttData[0] = 1;
-				_rttData[1] = 1;
 				_oldTarget = stage3DProxy.renderTarget;
 				_oldSurface = stage3DProxy.renderSurfaceSelector;
 				_oldDepthStencil = stage3DProxy.enableDepthAndStencil;
 				_oldRect = stage3DProxy.scissorRect;
-			}
-			else {
-				_rttData[0] = textureRatioX;
-				_rttData[1] = textureRatioY;
-				stage3DProxy._context3D.setProgramConstantsFromVector(Context3DProgramType.VERTEX, 4, _rttData, 1);
 			}
 		}
 
@@ -427,9 +431,9 @@ package away3d.materials.passes {
 			var vertexCode : String = getVertexCode();
 
 			if (_animationSet && !_animationSet.usesCPU) {
-				animatorCode = _animationSet.getAGALVertexCode(this, _animatableAttributes, _animationTargetRegisters);
+				animatorCode = _animationSet.getAGALVertexCode(this, _animatableAttributes, _animationTargetRegisters, stage3DProxy.profile);
 				if(_needFragmentAnimation)
-					fragmentAnimatorCode = _animationSet.getAGALFragmentCode(this, _shadedTarget);
+					fragmentAnimatorCode = _animationSet.getAGALFragmentCode(this, _shadedTarget, stage3DProxy.profile);
 				if (_needUVAnimation)
 					UVAnimatorCode = _animationSet.getAGALUVCode(this, _UVSource, _UVTarget);
 				_animationSet.doneAGALCode(this);
@@ -489,6 +493,7 @@ package away3d.materials.passes {
 		public function set alphaPremultiplied(value : Boolean) : void
 		{
 			_alphaPremultiplied = value;
+			invalidateShaderProgram(false);
 		}
 	}
 }

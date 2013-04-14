@@ -15,6 +15,7 @@ package away3d.core.render
 	import flash.display3D.Context3DCompareMode;
 	import flash.display3D.textures.TextureBase;
 	import flash.events.Event;
+	import flash.geom.Matrix3D;
 	import flash.geom.Rectangle;
 
 	use namespace arcane;
@@ -54,6 +55,7 @@ package away3d.core.render
         private var _snapshotRequired:Boolean;
 
 		private var _clearOnRender : Boolean = true;
+		protected var _rttViewProjectionMatrix : Matrix3D = new Matrix3D();
 
 		/**
 		 * Creates a new RendererBase object.
@@ -175,7 +177,10 @@ package away3d.core.render
 				return;
 			
 			if (!value) {
-				if (_stage3DProxy) _stage3DProxy.removeEventListener(Stage3DEvent.CONTEXT3D_CREATED, onContextUpdate);
+				if (_stage3DProxy) {
+					_stage3DProxy.removeEventListener(Stage3DEvent.CONTEXT3D_CREATED, onContextUpdate);
+					_stage3DProxy.removeEventListener(Stage3DEvent.CONTEXT3D_RECREATED, onContextUpdate);
+				}
 				_stage3DProxy = null;
 				_context = null;
 				return;
@@ -183,12 +188,12 @@ package away3d.core.render
 			//else if (_stage3DProxy) throw new Error("A Stage3D instance was already assigned!");
 
 			_stage3DProxy = value;
+			_stage3DProxy.addEventListener(Stage3DEvent.CONTEXT3D_CREATED, onContextUpdate);
+			_stage3DProxy.addEventListener(Stage3DEvent.CONTEXT3D_RECREATED, onContextUpdate);
 			if (_backgroundImageRenderer) _backgroundImageRenderer.stage3DProxy = value;
 
 			if (value.context3D)
 				_context = value.context3D;
-			else
-				value.addEventListener(Stage3DEvent.CONTEXT3D_CREATED, onContextUpdate);
 		}
 
 		/**
@@ -232,12 +237,15 @@ package away3d.core.render
 		{
 			if (!_stage3DProxy || !_context) return;
 
+			_rttViewProjectionMatrix.copyFrom(entityCollector.camera.viewProjection);
+			_rttViewProjectionMatrix.appendScale(_textureRatioX, _textureRatioY, 1);
+
 			executeRender(entityCollector, target, scissorRect, surfaceSelector);
 
 			// clear buffers
 			for (var i : uint = 0; i < 8; ++i) {
 				_context.setVertexBufferAt(i, null);
-				_stage3DProxy.setTextureAt(i, null);
+				_context.setTextureAt(i, null);
 			}
 		}
 

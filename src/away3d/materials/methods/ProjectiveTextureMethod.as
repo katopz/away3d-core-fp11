@@ -103,7 +103,7 @@ package away3d.materials.methods
 			regCache.getFreeVertexConstant();
 			regCache.getFreeVertexConstant();
 			regCache.getFreeVertexVectorTemp();
-			vo.vertexConstantsIndex = (projReg.index-vo.vertexConstantsOffset)*4;
+			vo.vertexConstantsIndex = projReg.index*4;
 			_uvVarying = regCache.getFreeVarying();
 
 			return "m44 " + _uvVarying + ", vt0, " + projReg + "\n";
@@ -154,7 +154,7 @@ package away3d.materials.methods
 		 */
 		override arcane function activate(vo : MethodVO, stage3DProxy : Stage3DProxy) : void
 		{
-			stage3DProxy.setTextureAt(vo.texturesIndex, _projector.texture.getTextureForStage3D(stage3DProxy));
+			stage3DProxy._context3D.setTextureAt(vo.texturesIndex, _projector.texture.getTextureForStage3D(stage3DProxy));
 		}
 	}
 }

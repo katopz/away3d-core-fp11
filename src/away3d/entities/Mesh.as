@@ -24,18 +24,21 @@
 		private var _material : MaterialBase;
 		private var _animator : IAnimator;
 		private var _castsShadows : Boolean = true;
+		private var _shareAnimationGeometry:Boolean = true;
 
 		/**
 		 * Create a new Mesh object.
-		 * @param material The material with which to render the Mesh.
-		 * @param geometry The geometry used by the mesh that provides it with its shape.
+		 * 
+		 * @param geometry					The geometry used by the mesh that provides it with its shape.
+		 * @param material	[optional]		The material with which to render the Mesh.
 		 */
 		public function Mesh(geometry : Geometry, material : MaterialBase = null)
 		{
 			super();
 			_subMeshes = new Vector.<SubMesh>();
 
-			this.geometry = geometry;
+			this.geometry = geometry || new Geometry(); //this should never happen, but if people insist on trying to create their meshes before they have geometry to fill it, it becomes necessary
+			
 			this.material = material || DefaultMaterialManager.getDefaultMaterial(this);
 		}
 		
@@ -57,7 +60,7 @@
 		}
 
 		/**
-		 * Indicates whether or not the Mesh can cast shadows
+		 * Indicates whether or not the Mesh can cast shadows. Default value is <code>true</code>.
 		 */
 		public function get castsShadows() : Boolean
 		{
@@ -70,7 +73,7 @@
 		}
 
 		/**
-		 * Defines the animator of the mesh. Act on the mesh's geometry. Defaults to null
+		 * Defines the animator of the mesh. Act on the mesh's geometry.  Default value is <code>null</code>.
 		 */
 		public function get animator() : IAnimator
 		{
@@ -177,6 +180,30 @@
 			
 			return _subMeshes;
 		}
+		
+		/**
+		 * Indicates whether or not the mesh share the same animation geometry.
+		 */
+		public function get shareAnimationGeometry():Boolean
+		{
+			return _shareAnimationGeometry;
+		}
+		
+		public function set shareAnimationGeometry(value:Boolean):void
+		{
+			_shareAnimationGeometry = value;
+		}
+		
+		/**
+		 * Clears the animation geometry of this mesh. It will cause animation to generate a new animation geometry. Work only when shareAnimationGeometry is false.
+		 */
+		public function clearAnimationGeometry():void
+		{
+			var len : int = _subMeshes.length;
+			for (var i : int = 0; i < len; ++i) {
+				_subMeshes[i].animationSubGeometry = null;
+			}
+		}
 
 		/**
 		 * @inheritDoc
@@ -190,40 +217,50 @@
 
 		/**
 		 * Clones this Mesh instance along with all it's children, while re-using the same
-		 * material and geometry instance. The returned result will be a copy of this mesh,
+		 * material, geometry and animation set. The returned result will be a copy of this mesh,
 		 * containing copies of all of it's children.
-		 * 
-		 * Properties that are re-used (i.e. not cloned) by the new copy include name, 
+		 *
+		 * Properties that are re-used (i.e. not cloned) by the new copy include name,
 		 * geometry, and material. Properties that are cloned or created anew for the copy
-		 * include subMeshes, animation and animationState and the children of the mesh.
-		 * 
+		 * include subMeshes, children of the mesh, and the animator.
+		 *
 		 * If you want to copy just the mesh, reusing it's geometry and material while not
 		 * cloning it's children, the simplest way is to create a new mesh manually:
-		 * 
+		 *
 		 * <code>
 		 * var clone : Mesh = new Mesh(original.geometry, original.material);
 		 * </code>
 		*/
 		override public function clone() : Object3D
 		{
-			var clone : Mesh = new Mesh(geometry, _material);
+			var clone : Mesh = new Mesh(_geometry, _material);
 			clone.transform = transform;
 			clone.pivotPoint = pivotPoint;
 			clone.partition = partition;
 			clone.bounds = _bounds.clone();
 			clone.name = name;
 			clone.castsShadows = castsShadows;
-
+			clone.shareAnimationGeometry = shareAnimationGeometry;
+			clone.mouseEnabled=this.mouseEnabled;
+			clone.mouseChildren=this.mouseChildren;
+			//this is of course no proper cloning
+			//maybe use this instead?: http://blog.another-d-mention.ro/programming/how-to-clone-duplicate-an-object-in-actionscript-3/
+			clone.extra=this.extra;
+			
 			var len : int = _subMeshes.length;
 			for (var i : int = 0; i < len; ++i) {
 				clone._subMeshes[i]._material = _subMeshes[i]._material;
 			}
-
+			
 			len = numChildren;
 			for (i = 0; i < len; ++i) {
 				clone.addChild(ObjectContainer3D(getChildAt(i).clone()));
 			}
 
+			if (_animator) {
+				clone.animator = _animator.clone();
+			}
+			
 			return clone;
 		}
 
@@ -308,7 +345,7 @@
 				var subMesh : SubMesh = _subMeshes[i];
 
 				var ignoreFacesLookingAway:Boolean = _material ? !_material.bothSides : true;
-				if (_pickingCollider.testSubMeshCollision(subMesh, _pickingCollisionVO, shortestCollisionDistance, ignoreFacesLookingAway)) {
+				if (_pickingCollider.testSubMeshCollision(subMesh, _pickingCollisionVO, shortestCollisionDistance)) {
 					shortestCollisionDistance = _pickingCollisionVO.rayEntryDistance;
 					_pickingCollisionVO.renderable = subMesh;
 					if (!findClosest)

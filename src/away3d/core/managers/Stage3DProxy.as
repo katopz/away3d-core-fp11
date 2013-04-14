@@ -1,10 +1,6 @@
 package away3d.core.managers
 {
 	import flash.display.Shape;
-	import away3d.arcane;
-	import away3d.debug.Debug;
-	import away3d.events.Stage3DEvent;
-	
 	import flash.display.Stage3D;
 	import flash.display3D.Context3D;
 	import flash.display3D.Context3DRenderMode;
@@ -15,6 +11,10 @@ package away3d.core.managers
 	import flash.events.EventDispatcher;
 	import flash.geom.Rectangle;
 	import flash.system.System;
+	
+	import away3d.arcane;
+	import away3d.debug.Debug;
+	import away3d.events.Stage3DEvent;
 
 	use namespace arcane;
 
@@ -39,6 +39,7 @@ package away3d.core.managers
 		arcane var _stage3DIndex : int = -1;
 
 		private var _usesSoftwareRendering : Boolean;
+		private var _profile : String;
 		private var _stage3D : Stage3D;
 		private var _activeProgram3D : Program3D;
 		private var _stage3DManager : Stage3DManager;
@@ -57,6 +58,27 @@ package away3d.core.managers
 		private var _viewPort : Rectangle;
 		private var _enterFrame : Event;
 		private var _exitFrame : Event;
+		private var _viewportUpdated : Stage3DEvent;
+		private var _viewportDirty : Boolean;
+		private var _bufferClear : Boolean;
+		private var _mouse3DManager : Mouse3DManager;
+		
+		private function notifyViewportUpdated():void
+		{
+			if (_viewportDirty)
+				return;
+			
+			_viewportDirty = true;
+			
+			if (!hasEventListener(Stage3DEvent.VIEWPORT_UPDATED))
+				return;
+			
+			//TODO: investigate bug causing coercion error
+			//if (!_viewportUpdated)
+				_viewportUpdated = new Stage3DEvent(Stage3DEvent.VIEWPORT_UPDATED);
+			
+			dispatchEvent(_viewportUpdated);
+		}
 		
 		private function notifyEnterFrame():void
 		{
@@ -88,7 +110,7 @@ package away3d.core.managers
 		 * @param stage3DManager
 		 * @param forceSoftware Whether to force software mode even if hardware acceleration is available.
 		 */
-		public function Stage3DProxy(stage3DIndex : int, stage3D : Stage3D, stage3DManager : Stage3DManager, forceSoftware : Boolean = false)
+		public function Stage3DProxy(stage3DIndex : int, stage3D : Stage3D, stage3DManager : Stage3DManager, forceSoftware : Boolean = false, profile : String = "baseline")
 		{
 			_stage3DIndex = stage3DIndex;
 			_stage3D = stage3D;
@@ -101,32 +123,12 @@ package away3d.core.managers
 			
 			// whatever happens, be sure this has highest priority
 			_stage3D.addEventListener(Event.CONTEXT3D_CREATE, onContext3DUpdate, false, 1000, false);
-			requestContext(forceSoftware);
+			requestContext(forceSoftware, profile);
 		}
 
-		/**
-		 * Assign the texture in the Context3D ready for use in the shader.
-		 * @param index The index where the texture is set
-		 * @param texture The texture to set
-		 */
-		public function setTextureAt(index : int, texture : TextureBase) : void
+		public function get profile() : String
 		{
-			if (_activeTextures[index] == texture) return;
-
-			_context3D.setTextureAt(index,  texture);
-
-			_activeTextures[index] = texture;
-		}
-
-		/**
-		 * Set the shader program for the subsequent rendering calls.
-		 * @param program3D The program to be used in the shader
-		 */
-		public function setProgram(program3D : Program3D) : void
-		{
-			if (_activeProgram3D == program3D) return;
-			_context3D.setProgram(program3D);
-			_activeProgram3D = program3D;
+			return _profile;
 		}
 
 		/**
@@ -151,8 +153,15 @@ package away3d.core.managers
 		 */
 		public function configureBackBuffer(backBufferWidth : int, backBufferHeight : int, antiAlias : int, enableDepthAndStencil : Boolean) : void
 		{
-			_backBufferWidth = backBufferWidth;
-			_backBufferHeight = backBufferHeight;
+			var oldWidth:uint = _backBufferWidth;
+			var oldHeight:uint = _backBufferHeight;
+			
+			_backBufferWidth = _viewPort.width = backBufferWidth;
+			_backBufferHeight = _viewPort.height = backBufferHeight;
+			
+			if (oldWidth != _backBufferWidth || oldHeight != _backBufferHeight)
+				notifyViewportUpdated();
+			
 			_antiAlias = antiAlias;
 			_enableDepthAndStencil = enableDepthAndStencil;
 
@@ -214,6 +223,8 @@ package away3d.core.managers
                 ((_color >> 8) & 0xff) / 255.0, 
                 (_color & 0xff) / 255.0,
                 ((_color >> 24) & 0xff) / 255.0 );
+				
+			_bufferClear = true;
 		}
 
 
@@ -227,6 +238,8 @@ package away3d.core.managers
 			_context3D.present();
 						
 			_activeProgram3D = null;
+
+			if (_mouse3DManager) _mouse3DManager.fireMouseEvents();
 		}
 		
 		/**
@@ -329,7 +342,12 @@ package away3d.core.managers
 
 		public function set x(value : Number) : void
 		{
+			if (_viewPort.x == value)
+				return;
+			
 			_stage3D.x = _viewPort.x = value;
+			
+			notifyViewportUpdated();
 		}
 
 		/**
@@ -342,7 +360,12 @@ package away3d.core.managers
 
 		public function set y(value : Number) : void
 		{
+			if (_viewPort.y == value)
+				return;
+			
 			_stage3D.y = _viewPort.y = value;
+			
+			notifyViewportUpdated();
 		}
 
 
@@ -350,28 +373,38 @@ package away3d.core.managers
 		 * The width of the Stage3D.
 		 */
 		public function get width() : int
-		{ 
+		{
 			return _backBufferWidth;
 		}
 
 		public function set width(width : int) : void
-		{ 
+		{
+			if (_viewPort.width == width)
+				return;
+			
 			_backBufferWidth = _viewPort.width = width; 
 			_backBufferDirty = true;
+			
+			notifyViewportUpdated();
 		}
 
 		/**
 		 * The height of the Stage3D.
 		 */
 		public function get height() : int
-		{ 
+		{
 			return _backBufferHeight;
 		}
 		
 		public function set height(height : int) : void
-		{ 
+		{
+			if (_viewPort.height == height)
+				return;
+			
 			_backBufferHeight = _viewPort.height = height; 
 			_backBufferDirty = true;
+			
+			notifyViewportUpdated();
 		}
 
 		/**
@@ -392,7 +425,9 @@ package away3d.core.managers
 		 * A viewPort rectangle equivalent of the Stage3D size and position.
 		 */
 		public function get viewPort() : Rectangle
-		{ 
+		{
+			_viewportDirty = false;
+			
 			return _viewPort;
 		}
 
@@ -423,6 +458,29 @@ package away3d.core.managers
 			_stage3D.visible = value;
 		}
 		
+
+		/**
+		 * The freshly cleared state of the backbuffer before any rendering
+		 */
+		public function get bufferClear() : Boolean {
+			return _bufferClear;
+		}
+
+		public function set bufferClear(newBufferClear : Boolean) : void {
+			_bufferClear = newBufferClear;
+		}
+
+		/*
+		 * Access to fire mouseevents across multiple layered view3D instances
+		 */
+		public function get mouse3DManager() : Mouse3DManager {
+			return _mouse3DManager;
+		}
+
+		public function set mouse3DManager(mouse3DManager : Mouse3DManager) : void {
+			_mouse3DManager = mouse3DManager;
+		}
+
 
 		/**
 		 * Frees the Context3D associated with this Stage3DProxy.
@@ -467,15 +525,22 @@ package away3d.core.managers
 		/**
 		 * Requests a Context3D object to attach to the managed Stage3D.
 		 */
-		private function requestContext(forceSoftware : Boolean = false) : void
+		private function requestContext(forceSoftware : Boolean = false, profile : String = "baseline") : void
 		{
 			// If forcing software, we can be certain that the
 			// returned Context3D will be running software mode.
 			// If not, we can't be sure and should stick to the
 			// old value (will likely be same if re-requesting.)
 			_usesSoftwareRendering ||= forceSoftware;
+			_profile = profile;
 
-			_stage3D.requestContext3D(forceSoftware? Context3DRenderMode.SOFTWARE : Context3DRenderMode.AUTO);
+			// ugly stuff for backward compatibility
+			var renderMode : String = forceSoftware? Context3DRenderMode.SOFTWARE : Context3DRenderMode.AUTO;
+			if (profile == "baseline")
+				_stage3D.requestContext3D(renderMode);
+			else
+				_stage3D["requestContext3D"](renderMode, profile);
+
 			_contextRequested = true;
 		}
 		

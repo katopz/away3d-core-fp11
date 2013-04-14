@@ -37,6 +37,19 @@
 		}
 
 		/**
+		 * Whether or not to use fallOff and radius properties for lights.
+		 */
+		public function get enableLightFallOff() : Boolean
+		{
+			return _screenPass.enableLightFallOff;
+		}
+
+		public function set enableLightFallOff(value : Boolean) : void
+		{
+			_screenPass.enableLightFallOff = value;
+		}
+
+		/**
 		 * The minimum alpha value for which pixels should be drawn. This is used for transparency that is either
 		 * invisible or entirely opaque, often used with textures for foliage, etc.
 		 * Recommended values are 0 to disable alpha, or 0.5 to create smooth edges. Default value is 0 (disabled).
@@ -66,13 +79,13 @@
 			_screenPass.depthCompareMode = value;
 		}
 
-		arcane override function activateForDepth(stage3DProxy : Stage3DProxy, camera : Camera3D, distanceBased : Boolean = false, textureRatioX : Number = 1, textureRatioY : Number = 1) : void
+		arcane override function activateForDepth(stage3DProxy : Stage3DProxy, camera : Camera3D, distanceBased : Boolean = false) : void
 		{
 			if (distanceBased)
 				_distancePass.alphaMask = _screenPass.diffuseMethod.texture;
 			else
 				_depthPass.alphaMask = _screenPass.diffuseMethod.texture;
-			super.activateForDepth(stage3DProxy, camera, distanceBased, textureRatioX, textureRatioY);
+			super.activateForDepth(stage3DProxy, camera, distanceBased);
 		}
 
 		public function get specularLightSources() : uint

@@ -123,16 +123,23 @@ package away3d.animators.states
 		
 		private function updateOrbitData():void
 		{
-			if (_particleOrbitNode.mode == ParticlePropertiesMode.GLOBAL) {
-				if (_usesEulers) {
+			if (_usesEulers) {
 					_eulersMatrix = new Matrix3D();
 					_eulersMatrix.appendRotation(_eulers.x, Vector3D.X_AXIS);
 					_eulersMatrix.appendRotation(_eulers.y, Vector3D.Y_AXIS);
 					_eulersMatrix.appendRotation(_eulers.z, Vector3D.Z_AXIS);
+			}
+			if (_particleOrbitNode.mode == ParticlePropertiesMode.GLOBAL)
+			{
+				_orbitData = new Vector3D(_radius, 0, _radius * Math.PI * 2, _cyclePhase * Math.PI / 180);
+				if (_usesCycle)
+				{
+					if (_cycleDuration <= 0)
+						throw(new Error("the cycle duration must be greater than zero"));
+					_orbitData.y = Math.PI * 2 / _cycleDuration;
 				}
-				if (_cycleDuration <= 0)
-					throw(new Error("the cycle duration must be greater than zero"));
-				_orbitData = new Vector3D(_radius, Math.PI * 2 / _cycleDuration, _radius * Math.PI * 2, _cyclePhase * Math.PI / 180);
+				else
+					_orbitData.y = Math.PI * 2;
 			}
 		}
 	}

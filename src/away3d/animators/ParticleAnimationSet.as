@@ -32,6 +32,11 @@ package away3d.animators
 		 */
 		public static const POST_PRIORITY:int = 9;
 		
+		/**
+		 * Property used by particle nodes that require color compilation
+		 */
+		public static const COLOR_PRIORITY:int = 18;
+		
 		private var _animationSubGeometries:Dictionary = new Dictionary(true);
 		private var _particleNodes:Vector.<ParticleNodeBase> = new Vector.<ParticleNodeBase>();
 		private var _localDynamicNodes:Vector.<ParticleNodeBase> = new Vector.<ParticleNodeBase>();
@@ -40,12 +45,14 @@ package away3d.animators
 		
 		//set true if has an node which will change UV
 		public var hasUVNode:Boolean;
-		//set true if has an node which will change color
-		public var hasColorNode:Boolean;
 		//set if the other nodes need to access the velocity
 		public var needVelocity:Boolean;
 		//set if has a billboard node.
 		public var hasBillboard:Boolean;
+		//set if has an node which will apply color multiple operation
+		public var hasColorMulNode:Boolean;
+		//set if has an node which will apply color add operation
+		public var hasColorAddNode:Boolean;
 		
 		
 		/**
@@ -135,10 +142,10 @@ package away3d.animators
 		/**
 		 * @inheritDoc
 		 */
-		public function getAGALVertexCode(pass : MaterialPassBase, sourceRegisters : Vector.<String>, targetRegisters : Vector.<String>) : String
+		public function getAGALVertexCode(pass : MaterialPassBase, sourceRegisters : Vector.<String>, targetRegisters : Vector.<String>, profile : String) : String
 		{
 			//grab animationRegisterCache from the materialpassbase or create a new one if the first time
-			_animationRegisterCache = pass.animationRegisterCache ||= new AnimationRegisterCache();
+			_animationRegisterCache = pass.animationRegisterCache ||= new AnimationRegisterCache(profile);
 			
 			//reset animationRegisterCache
 			_animationRegisterCache.vertexConstantOffset = pass.numUsedVertexConstants;
@@ -146,13 +153,14 @@ package away3d.animators
 			_animationRegisterCache.varyingsOffset = pass.numUsedVaryings;
 			_animationRegisterCache.fragmentConstantOffset = pass.numUsedFragmentConstants;
 			_animationRegisterCache.hasUVNode = hasUVNode;
-			_animationRegisterCache.hasColorNode = hasColorNode;
 			_animationRegisterCache.needVelocity = needVelocity;
 			_animationRegisterCache.hasBillboard = hasBillboard;
 			_animationRegisterCache.sourceRegisters = sourceRegisters;
 			_animationRegisterCache.targetRegisters = targetRegisters;
 			_animationRegisterCache.needFragmentAnimation = pass.needFragmentAnimation;
 			_animationRegisterCache.needUVAnimation = pass.needUVAnimation;
+			_animationRegisterCache.hasColorAddNode = hasColorAddNode;
+			_animationRegisterCache.hasColorMulNode = hasColorMulNode;
 			_animationRegisterCache.reset();
 			
 			var code:String = "";
@@ -168,9 +176,14 @@ package away3d.animators
 			code += _animationRegisterCache.getCombinationCode();
 			
 			for each(node in _particleNodes)
-				if (node.priority >= POST_PRIORITY)
+				if (node.priority >= POST_PRIORITY && node.priority < COLOR_PRIORITY)
 					code += node.getAGALVertexCode(pass, _animationRegisterCache);
 			
+			code += _animationRegisterCache.initColorRegisters();
+			for each(node in _particleNodes)
+				if (node.priority >= COLOR_PRIORITY)
+					code += node.getAGALVertexCode(pass, _animationRegisterCache);
+			code += _animationRegisterCache.getColorPassCode();
 			return code;
 		}
 		
@@ -183,13 +196,13 @@ package away3d.animators
 			if (hasUVNode)
 			{
 				_animationRegisterCache.setUVSourceAndTarget(UVSource, UVTarget);
-				code += "mov " + _animationRegisterCache.uvTarget.toString() + "," + _animationRegisterCache.uvAttribute.toString() + "\n";
+				code += "mov " + _animationRegisterCache.uvTarget + ".xy," + _animationRegisterCache.uvAttribute.toString() + "\n";
 				var node:ParticleNodeBase;
 				for each(node in _particleNodes)
 				{
 					code += node.getAGALUVCode(pass, _animationRegisterCache);
 				}
-				code += "mov " + _animationRegisterCache.uvVar.toString() + "," + _animationRegisterCache.uvTarget.toString() + "\n";
+				code += "mov " + _animationRegisterCache.uvVar.toString() + "," + _animationRegisterCache.uvTarget + ".xy\n";
 			}
 			else
 			{
@@ -201,16 +214,9 @@ package away3d.animators
 		/**
 		 * @inheritDoc
 		 */
-		public function getAGALFragmentCode(pass : MaterialPassBase, shadedTarget : String) : String
+		public function getAGALFragmentCode(pass : MaterialPassBase, shadedTarget : String, profile : String) : String
 		{
-			_animationRegisterCache.setShadedTarget(shadedTarget);
-			var code:String = "";
-			var node:ParticleNodeBase;
-			for each(node in _particleNodes)
-			{
-				code += node.getAGALFragmentCode(pass, _animationRegisterCache);
-			}
-			return code;
+			return _animationRegisterCache.getColorCombinationCode(shadedTarget);
 		}
 		
 		/**
@@ -222,11 +228,6 @@ package away3d.animators
 			
 			//set vertexZeroConst,vertexOneConst,vertexTwoConst
 			_animationRegisterCache.setVertexConst(_animationRegisterCache.vertexZeroConst.index, 0, 1, 2, 0);
-			if (_animationRegisterCache.numFragmentConstant > 0)
-			{
-				//set fragmentZeroConst,fragmentOneConst
-				_animationRegisterCache.setFragmentConst(_animationRegisterCache.fragmentZeroConst.index, 0, 1, 0, 0);
-			}
 		}
 		
 		/**
@@ -267,14 +268,19 @@ package away3d.animators
 			{
 				subMesh = mesh.subMeshes[i];
 				subGeometry = subMesh.subGeometry;
-				animationSubGeometry = _animationSubGeometries[subGeometry];
-				
-				if (animationSubGeometry) {
-					subMesh.animationSubGeometry = animationSubGeometry;
-					continue;
+				if (mesh.shareAnimationGeometry)
+				{
+					animationSubGeometry = _animationSubGeometries[subGeometry];
+					
+					if (animationSubGeometry) {
+						subMesh.animationSubGeometry = animationSubGeometry;
+						continue;
+					}
 				}
 				
-				animationSubGeometry = subMesh.animationSubGeometry = _animationSubGeometries[subGeometry] = new AnimationSubGeometry();
+				animationSubGeometry = subMesh.animationSubGeometry = new AnimationSubGeometry();
+				if (mesh.shareAnimationGeometry)
+					_animationSubGeometries[subGeometry] = animationSubGeometry;
 				
 				newAnimationSubGeometry = true;
 				
@@ -305,7 +311,7 @@ package away3d.animators
 			//default values for particle param
 			particleProperties.total = numParticles;
 			particleProperties.startTime = 0;
-			particleProperties.particleDuration = 1000;
+			particleProperties.duration = 1000;
 			particleProperties.delay = 0.1;
 			
 			i = 0;
@@ -323,7 +329,15 @@ package away3d.animators
 				
 				//loop through all particle data for the curent particle
 				while (j < particlesLength && (particle = particles[j]).particleIndex == i) {
-					animationSubGeometry = _animationSubGeometries[particle.subGeometry];
+					//find the target animationSubGeometry
+					for each(subMesh in mesh.subMeshes)
+					{
+						if (subMesh.subGeometry == particle.subGeometry)
+						{
+							animationSubGeometry = subMesh.animationSubGeometry;
+							break;
+						}
+					}
 					numVertices = particle.numVertices;
 					vertexData = animationSubGeometry.vertexData;
 					vertexLength = numVertices * _totalLenOfOneVertex;

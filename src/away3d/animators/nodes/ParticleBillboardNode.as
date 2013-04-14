@@ -7,6 +7,8 @@ package away3d.animators.nodes
 	import away3d.materials.compilation.*;
 	import away3d.materials.passes.*;
 	
+	import flash.geom.Vector3D;
+	
 	use namespace arcane;
 	
 	/**
@@ -16,17 +18,22 @@ package away3d.animators.nodes
 	{
 		/** @private */
 		arcane static const MATRIX_INDEX:int = 0;
+
+        /** @private */
+		arcane var _billboardAxis:Vector3D;
 		
 		/**
 		 * Creates a new <code>ParticleBillboardNode</code>
 		 */
-		public function ParticleBillboardNode()
+		public function ParticleBillboardNode(billboardAxis:Vector3D = null)
 		{
 			super("ParticleBillboard", ParticlePropertiesMode.GLOBAL, 0, 4);
 			
 			_stateClass = ParticleBillboardState;
+
+            _billboardAxis = billboardAxis;
 		}
-		
+
 		/**
 		 * @inheritDoc
 		 */
@@ -38,7 +45,7 @@ package away3d.animators.nodes
 			animationRegisterCache.getFreeVertexConstant();
 			animationRegisterCache.getFreeVertexConstant();
 			
-			var code:String = "m33 " + animationRegisterCache.scaleAndRotateTarget + "," + animationRegisterCache.scaleAndRotateTarget + "," + rotationMatrixRegister + "\n";
+			var code:String = "m33 " + animationRegisterCache.scaleAndRotateTarget + ".xyz," + animationRegisterCache.scaleAndRotateTarget + ".xyz," + rotationMatrixRegister + "\n";
 			
 			var shaderRegisterElement:ShaderRegisterElement;
 			for each (shaderRegisterElement in animationRegisterCache.rotationRegisters)

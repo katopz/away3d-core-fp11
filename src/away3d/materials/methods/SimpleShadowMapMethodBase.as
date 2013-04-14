@@ -105,7 +105,7 @@ package away3d.materials.methods
 			regCache.getFreeVertexConstant();
 			regCache.getFreeVertexConstant();
 			_depthMapCoordReg = regCache.getFreeVarying();
-			vo.vertexConstantsIndex = (dataReg.index-vo.vertexConstantsOffset)*4;
+			vo.vertexConstantsIndex = dataReg.index*4;
 
 			// todo: can epsilon be applied here instead of fragment shader?
 
@@ -171,7 +171,7 @@ package away3d.materials.methods
 				var f : Number = PointLight(_castingLight)._fallOff;
 				fragmentData[index+11] = 1/(2*f*f);
 			}
-			stage3DProxy.setTextureAt(vo.texturesIndex, _castingLight.shadowMapper.depthMap.getTextureForStage3D(stage3DProxy));
+			stage3DProxy._context3D.setTextureAt(vo.texturesIndex, _castingLight.shadowMapper.depthMap.getTextureForStage3D(stage3DProxy));
 		}
 
 		arcane function activateForCascade(vo : MethodVO, stage3DProxy : Stage3DProxy) : void
