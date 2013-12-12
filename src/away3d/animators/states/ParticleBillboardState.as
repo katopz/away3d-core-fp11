@@ -1,15 +1,15 @@
 package away3d.animators.states
 {
-	import away3d.arcane;
-	import away3d.cameras.Camera3D;
+	import away3d.animators.ParticleAnimator;
 	import away3d.animators.data.AnimationRegisterCache;
 	import away3d.animators.data.AnimationSubGeometry;
+	import away3d.animators.nodes.ParticleBillboardNode;
+	import away3d.arcane;
+	import away3d.cameras.Camera3D;
 	import away3d.core.base.IRenderable;
 	import away3d.core.managers.Stage3DProxy;
-	import away3d.animators.nodes.ParticleBillboardNode;
-	import away3d.animators.nodes.ParticleNodeBase;
-	import away3d.animators.ParticleAnimator;
 	import away3d.core.math.MathConsts;
+	
 	import flash.geom.Matrix3D;
 	import flash.geom.Orientation3D;
 	import flash.geom.Vector3D;
@@ -34,12 +34,13 @@ package away3d.animators.states
 			billboardAxis = particleNode._billboardAxis;
 		}
 		
-		
 		override public function setRenderState(stage3DProxy:Stage3DProxy, renderable:IRenderable, animationSubGeometry:AnimationSubGeometry, animationRegisterCache:AnimationRegisterCache, camera:Camera3D):void
 		{
+			// TODO: not used
+			animationSubGeometry = animationSubGeometry;
+			
 			var comps:Vector.<Vector3D>;
-			if (_billboardAxis)
-			{
+			if (_billboardAxis) {
 				var pos:Vector3D = renderable.sceneTransform.position;
 				var look:Vector3D = camera.sceneTransform.position.subtract(pos);
 				var right:Vector3D = look.crossProduct(_billboardAxis);
@@ -54,10 +55,8 @@ package away3d.animators.states
 				_matrix.copyColumnFrom(1, _billboardAxis);
 				_matrix.copyColumnFrom(2, look);
 				_matrix.copyColumnFrom(3, pos);
-				_matrix.appendRotation(-comps[1].w * MathConsts.RADIANS_TO_DEGREES, comps[1]);
-			}
-			else
-			{
+				_matrix.appendRotation(-comps[1].w*MathConsts.RADIANS_TO_DEGREES, comps[1]);
+			} else {
 				//create a quick inverse projection matrix
 				_matrix.copyFrom(renderable.sceneTransform);
 				_matrix.append(camera.inverseSceneTransform);
@@ -67,7 +66,7 @@ package away3d.animators.states
 				
 				//recreate the matrix with just the rotation data
 				_matrix.identity();
-				_matrix.appendRotation(-comps[1].w * MathConsts.RADIANS_TO_DEGREES, comps[1]);
+				_matrix.appendRotation(-comps[1].w*MathConsts.RADIANS_TO_DEGREES, comps[1]);
 			}
 			
 			//set a new matrix transform constant
@@ -84,7 +83,7 @@ package away3d.animators.states
 		
 		public function set billboardAxis(value:Vector3D):void
 		{
-			_billboardAxis = value ? value.clone() : null;
+			_billboardAxis = value? value.clone() : null;
 			if (_billboardAxis)
 				_billboardAxis.normalize();
 		}

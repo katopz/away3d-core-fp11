@@ -54,7 +54,6 @@ package away3d.animators
 		//set if has an node which will apply color add operation
 		public var hasColorAddNode:Boolean;
 		
-		
 		/**
 		 * Initialiser function for static particle properties. Needs to reference a function with teh following format
 		 *
@@ -71,7 +70,6 @@ package away3d.animators
 		 * arguments passed in the constructor of the particle animation set. By default, only the <code>startTime</code> property is required.
 		 */
 		public var initParticleFunc:Function;
-		
 		
 		/**
 		 * Creates a new <code>ParticleAnimationSet</code>
@@ -106,13 +104,13 @@ package away3d.animators
 				n.dataOffset = _totalLenOfOneVertex;
 				_totalLenOfOneVertex += n.dataLength;
 				_localStaticNodes.push(n);
-			} else if (n.mode == ParticlePropertiesMode.LOCAL_DYNAMIC) {
+			} else if (n.mode == ParticlePropertiesMode.LOCAL_DYNAMIC)
 				_localDynamicNodes.push(n);
-			}
 			
-			for (i = _particleNodes.length - 1; i >= 0; i--)
+			for (i = _particleNodes.length - 1; i >= 0; i--) {
 				if (_particleNodes[i].priority <= n.priority)
 					break;
+			}
 			
 			_particleNodes.splice(i + 1, 0, n);
 			
@@ -122,7 +120,7 @@ package away3d.animators
 		/**
 		 * @inheritDoc
 		 */
-		public function activate(stage3DProxy : Stage3DProxy, pass : MaterialPassBase) : void
+		public function activate(stage3DProxy:Stage3DProxy, pass:MaterialPassBase):void
 		{
 			_animationRegisterCache = pass.animationRegisterCache;
 		}
@@ -130,19 +128,22 @@ package away3d.animators
 		/**
 		 * @inheritDoc
 		 */
-		public function deactivate(stage3DProxy : Stage3DProxy, pass : MaterialPassBase) : void
+		public function deactivate(stage3DProxy:Stage3DProxy, pass:MaterialPassBase):void
 		{
-			var context : Context3D = stage3DProxy.context3D;
-			var offset:int = _animationRegisterCache.vertexAttributesOffset;
-			var used:int = _animationRegisterCache.numUsedStreams;
-			for (var i:int = offset; i < used; i++)
-				context.setVertexBufferAt(i, null);
+			if (_animationRegisterCache)
+			{
+				var context:Context3D = stage3DProxy.context3D;
+				var offset:int = _animationRegisterCache.vertexAttributesOffset;
+				var used:int = _animationRegisterCache.numUsedStreams;
+				for (var i:int = offset; i < used; i++)
+					context.setVertexBufferAt(i, null);
+			}
 		}
 		
 		/**
 		 * @inheritDoc
 		 */
-		public function getAGALVertexCode(pass : MaterialPassBase, sourceRegisters : Vector.<String>, targetRegisters : Vector.<String>, profile : String) : String
+		public function getAGALVertexCode(pass:MaterialPassBase, sourceRegisters:Vector.<String>, targetRegisters:Vector.<String>, profile:String):String
 		{
 			//grab animationRegisterCache from the materialpassbase or create a new one if the first time
 			_animationRegisterCache = pass.animationRegisterCache ||= new AnimationRegisterCache(profile);
@@ -167,22 +168,24 @@ package away3d.animators
 			
 			code += _animationRegisterCache.getInitCode();
 			
-			
 			var node:ParticleNodeBase;
-			for each(node in _particleNodes)
+			for each (node in _particleNodes) {
 				if (node.priority < POST_PRIORITY)
 					code += node.getAGALVertexCode(pass, _animationRegisterCache);
+			}
 			
 			code += _animationRegisterCache.getCombinationCode();
 			
-			for each(node in _particleNodes)
+			for each (node in _particleNodes) {
 				if (node.priority >= POST_PRIORITY && node.priority < COLOR_PRIORITY)
 					code += node.getAGALVertexCode(pass, _animationRegisterCache);
+			}
 			
 			code += _animationRegisterCache.initColorRegisters();
-			for each(node in _particleNodes)
+			for each (node in _particleNodes) {
 				if (node.priority >= COLOR_PRIORITY)
 					code += node.getAGALVertexCode(pass, _animationRegisterCache);
+			}
 			code += _animationRegisterCache.getColorPassCode();
 			return code;
 		}
@@ -190,31 +193,25 @@ package away3d.animators
 		/**
 		 * @inheritDoc
 		 */
-		public function getAGALUVCode(pass : MaterialPassBase, UVSource : String, UVTarget:String) : String
+		public function getAGALUVCode(pass:MaterialPassBase, UVSource:String, UVTarget:String):String
 		{
 			var code:String = "";
-			if (hasUVNode)
-			{
+			if (hasUVNode) {
 				_animationRegisterCache.setUVSourceAndTarget(UVSource, UVTarget);
 				code += "mov " + _animationRegisterCache.uvTarget + ".xy," + _animationRegisterCache.uvAttribute.toString() + "\n";
 				var node:ParticleNodeBase;
-				for each(node in _particleNodes)
-				{
+				for each (node in _particleNodes)
 					code += node.getAGALUVCode(pass, _animationRegisterCache);
-				}
 				code += "mov " + _animationRegisterCache.uvVar.toString() + "," + _animationRegisterCache.uvTarget + ".xy\n";
-			}
-			else
-			{
+			} else
 				code += "mov " + UVTarget + "," + UVSource + "\n";
-			}
 			return code;
 		}
 		
 		/**
 		 * @inheritDoc
 		 */
-		public function getAGALFragmentCode(pass : MaterialPassBase, shadedTarget : String, profile : String) : String
+		public function getAGALFragmentCode(pass:MaterialPassBase, shadedTarget:String, profile:String):String
 		{
 			return _animationRegisterCache.getColorCombinationCode(shadedTarget);
 		}
@@ -222,7 +219,7 @@ package away3d.animators
 		/**
 		 * @inheritDoc
 		 */
-		public function doneAGALCode(pass : MaterialPassBase):void
+		public function doneAGALCode(pass:MaterialPassBase):void
 		{
 			_animationRegisterCache.setDataLength();
 			
@@ -233,7 +230,7 @@ package away3d.animators
 		/**
 		 * @inheritDoc
 		 */
-		override public function get usesCPU() : Boolean
+		override public function get usesCPU():Boolean
 		{
 			return false;
 		}
@@ -241,10 +238,20 @@ package away3d.animators
 		/**
 		 * @inheritDoc
 		 */
-		override public function cancelGPUCompatibility() : void
-        {
+		override public function cancelGPUCompatibility():void
+		{
+		
+		}
+		
+		override public function dispose():void
+		{
+			var subGeometry:AnimationSubGeometry;
 			
-        }
+			for each (subGeometry in _animationSubGeometries)
+				subGeometry.dispose();
+			
+			super.dispose();
+		}
 		
 		/** @private */
 		arcane function generateAnimationSubGeometries(mesh:Mesh):void
@@ -252,7 +259,7 @@ package away3d.animators
 			if (initParticleFunc == null)
 				throw(new Error("no initParticleFunc set"));
 			
-			var geometry:ParticleGeometry =  mesh.geometry as ParticleGeometry;
+			var geometry:ParticleGeometry = mesh.geometry as ParticleGeometry;
 			
 			if (!geometry)
 				throw(new Error("Particle animation can only be performed on a ParticleGeometry object"));
@@ -264,12 +271,10 @@ package away3d.animators
 			var subMesh:SubMesh;
 			var localNode:ParticleNodeBase;
 			
-			for (i = 0; i < mesh.subMeshes.length; i++)
-			{
+			for (i = 0; i < mesh.subMeshes.length; i++) {
 				subMesh = mesh.subMeshes[i];
 				subGeometry = subMesh.subGeometry;
-				if (mesh.shareAnimationGeometry)
-				{
+				if (mesh.shareAnimationGeometry) {
 					animationSubGeometry = _animationSubGeometries[subGeometry];
 					
 					if (animationSubGeometry) {
@@ -307,7 +312,7 @@ package away3d.animators
 			var vertexLength:uint;
 			var startingOffset:uint;
 			var vertexOffset:uint;
-					
+			
 			//default values for particle param
 			particleProperties.total = numParticles;
 			particleProperties.startTime = 0;
@@ -316,8 +321,7 @@ package away3d.animators
 			
 			i = 0;
 			j = 0;
-			while (i < numParticles)
-			{
+			while (i < numParticles) {
 				particleProperties.index = i;
 				
 				//call the init function on the particle parameters
@@ -330,18 +334,16 @@ package away3d.animators
 				//loop through all particle data for the curent particle
 				while (j < particlesLength && (particle = particles[j]).particleIndex == i) {
 					//find the target animationSubGeometry
-					for each(subMesh in mesh.subMeshes)
-					{
-						if (subMesh.subGeometry == particle.subGeometry)
-						{
+					for each (subMesh in mesh.subMeshes) {
+						if (subMesh.subGeometry == particle.subGeometry) {
 							animationSubGeometry = subMesh.animationSubGeometry;
 							break;
 						}
 					}
 					numVertices = particle.numVertices;
 					vertexData = animationSubGeometry.vertexData;
-					vertexLength = numVertices * _totalLenOfOneVertex;
-					startingOffset = animationSubGeometry.numProcessedVertices * _totalLenOfOneVertex;
+					vertexLength = numVertices*_totalLenOfOneVertex;
+					startingOffset = animationSubGeometry.numProcessedVertices*_totalLenOfOneVertex;
 					
 					//loop through each static local node in the animation set
 					for each (localNode in _localStaticNodes) {
@@ -350,7 +352,7 @@ package away3d.animators
 						oneDataOffset = startingOffset + localNode.dataOffset;
 						
 						//loop through each vertex set in the vertex data
-						for (counterForVertex = 0; counterForVertex < vertexLength; counterForVertex+=_totalLenOfOneVertex) {
+						for (counterForVertex = 0; counterForVertex < vertexLength; counterForVertex += _totalLenOfOneVertex) {
 							vertexOffset = oneDataOffset + counterForVertex;
 							
 							//add the data for the local node to the vertex data

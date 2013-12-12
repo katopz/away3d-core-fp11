@@ -1,32 +1,30 @@
 package away3d.materials.methods
 {
-	import away3d.lights.shadowmaps.DirectionalShadowMapper;
-	import away3d.arcane;
-	import away3d.cameras.Camera3D;
-	import away3d.core.base.IRenderable;
-	import away3d.core.managers.Stage3DProxy;
-	import away3d.errors.AbstractMethodError;
-	import away3d.lights.LightBase;
-	import away3d.lights.PointLight;
-	import away3d.lights.shadowmaps.ShadowMapperBase;
-	import away3d.materials.compilation.ShaderRegisterCache;
-	import away3d.materials.compilation.ShaderRegisterElement;
-
-	import flash.geom.Matrix3D;
-	import flash.geom.Vector3D;
-
+	import away3d.*;
+	import away3d.errors.*;
+	import away3d.library.assets.*;
+	import away3d.lights.*;
+	import away3d.lights.shadowmaps.*;
+	import away3d.materials.compilation.*;
+	
 	use namespace arcane;
 
-	public class ShadowMapMethodBase extends ShadingMethodBase
+	/**
+	 * ShadowMapMethodBase provides an abstract base method for shadow map methods.
+	 */
+	public class ShadowMapMethodBase extends ShadingMethodBase implements IAsset
 	{
-		protected var _castingLight : LightBase;
-		protected var _shadowMapper : ShadowMapperBase;
+		protected var _castingLight:LightBase;
+		protected var _shadowMapper:ShadowMapperBase;
+		
+		protected var _epsilon:Number = .02;
+		protected var _alpha:Number = 1;
 
-		protected var _epsilon : Number = .002;
-		protected var _alpha : Number = 1;
-
-
-		public function ShadowMapMethodBase(castingLight : LightBase)
+		/**
+		 * Creates a new ShadowMapMethodBase object.
+		 * @param castingLight The light used to cast shadows.
+		 */
+		public function ShadowMapMethodBase(castingLight:LightBase)
 		{
 			super();
 			_castingLight = castingLight;
@@ -34,32 +32,53 @@ package away3d.materials.methods
 			_shadowMapper = castingLight.shadowMapper;
 		}
 
-		public function get alpha() : Number
+		/**
+		 * @inheritDoc
+		 */
+		public function get assetType():String
+		{
+			return AssetType.SHADOW_MAP_METHOD;
+		}
+
+		/**
+		 * The "transparency" of the shadows. This allows making shadows less strong.
+		 */
+		public function get alpha():Number
 		{
 			return _alpha;
 		}
-
-		public function set alpha(value : Number) : void
+		
+		public function set alpha(value:Number):void
 		{
 			_alpha = value;
 		}
 
-		public function get castingLight() : LightBase
+		/**
+		 * The light casting the shadows.
+		 */
+		public function get castingLight():LightBase
 		{
 			return _castingLight;
 		}
 
-		public function get epsilon() : Number
+		/**
+		 * A small value to counter floating point precision errors when comparing values in the shadow map with the
+		 * calculated depth value. Increase this if shadow banding occurs, decrease it if the shadow seems to be too detached.
+		 */
+		public function get epsilon():Number
 		{
 			return _epsilon;
 		}
-
-		public function set epsilon(value : Number) : void
+		
+		public function set epsilon(value:Number):void
 		{
 			_epsilon = value;
 		}
 
-		arcane function getFragmentCode(vo : MethodVO, regCache : ShaderRegisterCache, targetReg : ShaderRegisterElement) : String
+		/**
+		 * @inheritDoc
+		 */
+		arcane function getFragmentCode(vo:MethodVO, regCache:ShaderRegisterCache, targetReg:ShaderRegisterElement):String
 		{
 			throw new AbstractMethodError();
 			return null;
