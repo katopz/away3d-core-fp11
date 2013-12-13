@@ -114,13 +114,13 @@ package away3d.animators.states
 			if (endPoses.length != numJoints)
 				endPoses.length = numJoints;
 			
-			if ((numJoints != currentPose.length) || (numJoints != nextPose.length))
-				throw new Error("joint counts don't match!");
+			//if ((numJoints != currentPose.length) || (numJoints != nextPose.length))
+			//	throw new Error("joint counts don't match!");
 			
-			for (var i:uint = 0; i < numJoints; ++i) {
+			for (var i : uint = 0; i < numJoints; ++i) {
 				endPose = endPoses[i] ||= new JointPose();
-				pose1 = currentPose[i];
-				pose2 = nextPose[i];
+				pose1 = (i<currentPose.length)?currentPose[i] : endPose;
+				pose2 = (i<nextPose.length)?nextPose[i] : endPose;
 				p1 = pose1.translation;
 				p2 = pose2.translation;
 				
@@ -153,9 +153,14 @@ package away3d.animators.states
 			
 			// jumping back, need to reset position
 			if ((_timeDir > 0 && _nextFrame < _oldFrame) || (_timeDir < 0 && _nextFrame > _oldFrame)) {
-				_rootPos.x -= totalDelta.x*_timeDir;
-				_rootPos.y -= totalDelta.y*_timeDir;
-				_rootPos.z -= totalDelta.z*_timeDir;
+				// i don't think we need this?
+				//_rootPos.x -= totalDelta.x*_timeDir;
+				//_rootPos.y -= totalDelta.y*_timeDir;
+				//_rootPos.z -= totalDelta.z*_timeDir;
+				
+				_rootDelta.x = 0;
+				_rootDelta.y = 0;
+				_rootDelta.z = 0;
 			}
 			
 			var dx:Number = _rootPos.x;
