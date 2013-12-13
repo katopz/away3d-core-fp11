@@ -3,9 +3,9 @@ package away3d.animators
 	import away3d.animators.nodes.*;
 	import away3d.errors.*;
 	import away3d.library.assets.*;
-	
+
 	import flash.utils.*;
-	
+
 	/**
 	 * Provides an abstract base class for data set classes that hold animation data for use in animator classes.
 	 *
@@ -17,12 +17,12 @@ package away3d.animators
 		private var _animations:Vector.<AnimationNodeBase> = new Vector.<AnimationNodeBase>();
 		private var _animationNames:Vector.<String> = new Vector.<String>();
 		private var _animationDictionary:Dictionary = new Dictionary(true);
-		
+
 		public function AnimationSetBase()
 		{
-		
+
 		}
-		
+
 		/**
 		 * Retrieves a temporary GPU register that's still free.
 		 *
@@ -34,18 +34,19 @@ package away3d.animators
 		{
 			var i:uint;
 			var reg:String;
-			
-			while (true) {
+
+			while (true)
+			{
 				reg = "vt" + i;
 				if (exclude.indexOf(reg) == -1 && excludeAnother != reg)
 					return reg;
 				++i;
 			}
-			
+
 			// can't be reached
 			return null;
 		}
-		
+
 		/**
 		 * Indicates whether the properties of the animation data contained within the set combined with
 		 * the vertex registers aslready in use on shading materials allows the animation data to utilise
@@ -55,7 +56,7 @@ package away3d.animators
 		{
 			return _usesCPU;
 		}
-		
+
 		/**
 		 * Called by the material to reset the GPU indicator before testing whether register space in the shader
 		 * is available for running GPU-based animation code.
@@ -66,12 +67,12 @@ package away3d.animators
 		{
 			_usesCPU = false;
 		}
-		
+
 		public function cancelGPUCompatibility():void
 		{
 			_usesCPU = true;
 		}
-		
+
 		/**
 		 * @inheritDoc
 		 */
@@ -79,7 +80,7 @@ package away3d.animators
 		{
 			return AssetType.ANIMATION_SET;
 		}
-		
+
 		/**
 		 * Returns a vector of animation state objects that make up the contents of the animation data set.
 		 */
@@ -87,7 +88,7 @@ package away3d.animators
 		{
 			return _animations;
 		}
-		
+
 		/**
 		 * Returns a vector of animation state objects that make up the contents of the animation data set.
 		 */
@@ -95,7 +96,7 @@ package away3d.animators
 		{
 			return _animationNames;
 		}
-		
+
 		/**
 		 * Check to determine whether a state is registered in the animation set under the given name.
 		 *
@@ -105,7 +106,7 @@ package away3d.animators
 		{
 			return _animationDictionary[name] != null;
 		}
-		
+
 		/**
 		 * Retrieves the animation state object registered in the animation data set under the given name.
 		 *
@@ -115,7 +116,7 @@ package away3d.animators
 		{
 			return _animationDictionary[name];
 		}
-		
+
 		/**
 		 * Adds an animation state object to the aniamtion data set under the given name.
 		 *
@@ -124,18 +125,16 @@ package away3d.animators
 		 */
 		public function addAnimation(node:AnimationNodeBase):void
 		{
-			trace(" + addAnimation : " + node.name);
-			
 			if (_animationDictionary[node.name])
 				throw new AnimationSetError("root node name '" + node.name + "' already exists in the set");
-			
+
 			_animationDictionary[node.name] = node;
-			
+
 			_animations.push(node);
-			
+
 			_animationNames.push(node.name);
 		}
-		
+
 		/**
 		 * Cleans up any resources used by the current object.
 		 */
