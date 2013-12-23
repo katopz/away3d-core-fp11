@@ -34,7 +34,6 @@ package away3d.loaders.parsers
 	import away3d.textures.BitmapTexture;
 	import away3d.textures.Texture2DBase;
 
-
 	use namespace arcane;
 
 	/**
@@ -236,17 +235,7 @@ package away3d.loaders.parsers
 							_root = new DAEVisualScene(this, list[0]);
 							_root.updateTransforms(_root);
 							_animationInfo = parseAnimationInfo();
-
-							/*
-							// TODO : read bone data then apply it later
-							Debug.trace(" ! ------------- Begin Parse Scene Joint -------------");
-							parseSceneGraphJoint(_root, _rootContainer);
-							Debug.trace(" ! ------------- End Parse Scene Joint -------------");
-							*/
-
-							Debug.trace(" ! ------------- Begin Parse Scene -------------");
 							parseSceneGraph(_root, _rootContainer);
-							Debug.trace(" ! ------------- End Parse Scene -------------");
 						}
 					}
 					_parseState = isAnimated ? DAEParserState.PARSE_ANIMATIONS : DAEParserState.PARSE_COMPLETE;
@@ -347,6 +336,8 @@ package away3d.loaders.parsers
 				skinned_sub_geom.updateJointWeightsData(jointWeights);
 				geometry.subGeometries[i] = skinned_sub_geom;
 				geometry.subGeometries[i].parentGeometry = geometry;
+				//-update shader group.
+				geometry.subGeometries[i].sg = sub.sg;
 			}
 		}
 
@@ -429,7 +420,7 @@ package away3d.loaders.parsers
 					container = processControllers(node, parent);
 				else
 				{
-					// trace("Should be a container " + node.id)
+					// Debug.trace("Should be a container " + node.id)
 					container = new ObjectContainer3D();
 					container.name = node.id;
 					container.transform.rawData = node.matrix.rawData;
@@ -451,9 +442,13 @@ package away3d.loaders.parsers
 				return null;
 
 			if (controller.morph)
+			{
 				geometry = processControllerMorph(controller, instance);
+			}
 			else if (controller.skin)
+			{
 				geometry = processControllerSkin(controller, instance);
+			}
 
 			return geometry;
 		}
@@ -497,7 +492,9 @@ package away3d.loaders.parsers
 					j = sub.vertexOffset + v * sub.vertexStride;
 					vertexData[j] = morph.method == "NORMALIZED" ? startWeight * sub.vertexData[j] : sub.vertexData[j];
 					for (k = 0; k < morph.targets.length; k++)
+					{
 						vertexData[j] += morph.weights[k] * targets[k].subGeometries[i].vertexData[j];
+					}
 				}
 				sub.updateData(vertexData);
 			}
@@ -523,7 +520,7 @@ package away3d.loaders.parsers
 			applySkinController(geometry, daeGeometry.mesh, controller.skin, skeleton);
 			controller.skin.userData = skeleton;
 
-			finalizeAsset(skeleton);
+			//finalizeAsset(skeleton);
 
 			return geometry;
 		}
@@ -646,9 +643,12 @@ package away3d.loaders.parsers
 				for (j = 0; j < skin.joints.length; j++)
 				{
 					node = _root.findNodeById(skin.joints[j]) || _root.findNodeBySid(skin.joints[j]);
+
 					pose = new JointPose();
 					matrix = node.getAnimatedMatrix(t) || node.matrix;
 					pose.name = skin.joints[j];
+					pose.jointName = node.name;
+
 					pose.orientation.fromMatrix(matrix);
 					pose.translation.copyFrom(matrix.position);
 
@@ -683,7 +683,7 @@ package away3d.loaders.parsers
 				}
 				catch (e:Error)
 				{
-					trace("Errors found in skeleton joints data");
+					Debug.trace("Errors found in skeleton joints data");
 					return false;
 				}
 				if (node && node.channels.length)
@@ -788,6 +788,8 @@ package away3d.loaders.parsers
 			skeleton.joints = new Vector.<SkeletonJoint>(controller.skin.joints.length, true);
 			parseSkeletonHierarchy(skeletonRoot, controller.skin, skeleton);
 
+			finalizeAsset(skeleton);
+
 			return skeleton;
 		}
 
@@ -813,7 +815,7 @@ package away3d.loaders.parsers
 				}
 				else
 				{
-					trace("Error: skin.joints index out of range");
+					Debug.trace("Error: skin.joints index out of range");
 					return;
 				}
 
@@ -831,13 +833,13 @@ package away3d.loaders.parsers
 					}
 					catch (e:Error)
 					{
-						trace(e.message);
+						Debug.trace(e.message);
 					}
 				}
 			}
 			else
 			{
-				trace("poor joint no bone");
+				Debug.trace("poor joint no bone");
 
 				joint = new SkeletonJoint();
 				joint.parentIndex = parent;
@@ -850,7 +852,7 @@ package away3d.loaders.parsers
 
 				jointIndex = skeleton.joints.length - 1;
 
-				trace("extra:" + jointIndex);
+				Debug.trace("extra:" + jointIndex);
 
 				for (i = 0; i < node.nodes.length; i++)
 				{
@@ -860,7 +862,7 @@ package away3d.loaders.parsers
 					}
 					catch (e:Error)
 					{
-						trace(e.message);
+						Debug.trace(e.message);
 					}
 				}
 			}
@@ -888,7 +890,7 @@ package away3d.loaders.parsers
 			{
 				var image:DAEImage = _libImages[effect.surface.init_from];
 
-				if (image.resource !== null && isBitmapDataValid(image.resource.bitmapData))
+				if (image && image.resource !== null && isBitmapDataValid(image.resource.bitmapData))
 				{
 					mat = buildDefaultMaterial(image.resource.bitmapData);
 					if (materialMode < 2)
@@ -929,7 +931,6 @@ package away3d.loaders.parsers
 					MultiPassMaterialBase(mat).gloss = shininess;
 					MultiPassMaterialBase(mat).ambient = 1;
 					MultiPassMaterialBase(mat).specular = 1;
-
 				}
 			}
 
@@ -1016,7 +1017,9 @@ package away3d.loaders.parsers
 						data.push(v.uvx, 1.0 - v.uvy);
 				}
 				else
+				{
 					data.push(0, 0, 0, 0);
+				}
 			}
 
 			// triangles
@@ -1033,10 +1036,14 @@ package away3d.loaders.parsers
 			if (reverseTriangles)
 				indexData.reverse();
 
+			sub.sg = primitive.material;
 			sub.autoDeriveVertexNormals = autoDeriveVertexNormals;
 			sub.autoDeriveVertexTangents = autoDeriveVertexTangents;
 			sub.updateData(data);
 			sub.updateIndexData(indexData);
+
+			//-add shader group to sugeo
+			sub.sg = primitive.material;
 
 			return sub;
 		}
@@ -1073,7 +1080,8 @@ import flash.geom.Matrix3D;
 import flash.geom.Vector3D;
 
 import away3d.containers.ObjectContainer3D;
-import away3d.loaders.parsers.*;
+import away3d.debug.Debug;
+import away3d.loaders.parsers.DAEParser;
 
 class DAEAnimationInfo
 {
@@ -1203,6 +1211,7 @@ class DAEImage extends DAEElement
 {
 	public var init_from:String;
 	public var resource:*;
+	public var fileName:String;
 
 	public function DAEImage(element:XML = null):void
 	{
@@ -1213,6 +1222,8 @@ class DAEImage extends DAEElement
 	{
 		super.deserialize(element);
 		init_from = readText(element.ns::init_from[0]);
+		//-get file name from path.
+		fileName = String(init_from).split("/").pop();
 		resource = null;
 	}
 }
@@ -1402,6 +1413,7 @@ class DAEPrimitive extends DAEElement
 
 	public override function deserialize(element:XML):void
 	{
+
 		super.deserialize(element);
 		this.type = element.name().localName;
 		this.material = element.@material.toString();
@@ -1414,7 +1426,9 @@ class DAEPrimitive extends DAEElement
 		var list:XMLList = element.ns::input;
 
 		for (var i:uint = 0; i < list.length(); i++)
+		{
 			_inputs.push(new DAEInput(list[i]));
+		}
 
 		if (element.ns::p && element.ns::p.length())
 			_p = readIntArray(element.ns::p[0]);
@@ -1477,18 +1491,26 @@ class DAEPrimitive extends DAEElement
 							vertex.x = source.floats[idx32 + 0];
 							vertex.y = source.floats[idx32 + 1];
 							if (DAEElement.USE_LEFT_HANDED)
+							{
 								vertex.z = -source.floats[idx32 + 2];
+							}
 							else
+							{
 								vertex.z = source.floats[idx32 + 2];
+							}
 							vertex.daeIndex = index;
 							break;
 						case "NORMAL":
 							vertex.nx = source.floats[idx32 + 0];
 							vertex.ny = source.floats[idx32 + 1];
 							if (DAEElement.USE_LEFT_HANDED)
+							{
 								vertex.nz = -source.floats[idx32 + 2];
+							}
 							else
+							{
 								vertex.nz = source.floats[idx32 + 2];
+							}
 							break;
 						case "TEXCOORD":
 							if (input.set == _texcoordSets[0])
@@ -1509,7 +1531,9 @@ class DAEPrimitive extends DAEElement
 				var hash:String = vertex.hash;
 
 				if (vertexDict[hash])
+				{
 					face.vertices.push(vertexDict[hash]);
+				}
 				else
 				{
 					vertex.index = this.vertices.length;
@@ -1534,7 +1558,9 @@ class DAEPrimitive extends DAEElement
 
 			}
 			else if (face.vertices.length == 3)
+			{
 				faces.push(face);
+			}
 			idx += (vcount * numInputs);
 		}
 		return faces;
@@ -1984,7 +2010,7 @@ class DAEShader extends DAEElement
 				this.props[nodeName] = parseFloat(readText(child.ns::float[0]));
 				break;
 			default:
-				trace("[WARNING] unhandled DAEShader property: " + nodeName);
+				Debug.trace("[WARNING] unhandled DAEShader property: " + nodeName);
 		}
 	}
 }
@@ -2056,7 +2082,7 @@ class DAEEffect extends DAEElement
 					this.sampler.sid = element.@sid.toString();
 					break;
 				default:
-					trace("[WARNING] unhandled newparam: " + name);
+					Debug.trace("[WARNING] unhandled newparam: " + name);
 			}
 		}
 	}
@@ -2251,8 +2277,6 @@ class DAENode extends DAEElement
 		var minTime:Number = Number.MAX_VALUE;
 		var maxTime:Number = -minTime;
 		var i:uint;
-		//var j : uint;
-		//var frame : int;
 
 		for (i = 0; i < this.channels.length; i++)
 		{
@@ -2269,7 +2293,6 @@ class DAENode extends DAEElement
 			if (channelsBySID.hasOwnProperty(transform.sid))
 			{
 				var m:Matrix3D = new Matrix3D();
-				//var found : Boolean = false;
 				var frameData:DAEFrameData = null;
 				channel = channelsBySID[transform.sid] as DAEChannel;
 				frameData = channel.sampler.getFrameData(time);
@@ -2288,13 +2311,15 @@ class DAENode extends DAEElement
 								if (channel.arrayIndices.length > 1)
 								{
 									//	m.rawData[channel.arrayIndices[0] * 4 + channel.arrayIndices[1]] = odata[0];
-									//	trace(channel.arrayIndices[0] * 4 + channel.arrayIndices[1])
+									//	Debug.trace(channel.arrayIndices[0] * 4 + channel.arrayIndices[1])
 								}
 
 							}
 							else if (channel.dotAccess)
-								trace("unhandled matrix array access");
+							{
+								Debug.trace("unhandled matrix array access");
 
+							}
 							else if (odata.length == 16)
 							{
 								m.rawData = odata;
@@ -2302,13 +2327,17 @@ class DAENode extends DAEElement
 
 							}
 							else
-								trace("unhandled matrix " + transform.sid + " " + odata);
+							{
+								Debug.trace("unhandled matrix " + transform.sid + " " + odata);
+							}
 							break;
 
 						case "rotate":
 							if (channel.arrayAccess)
-								trace("unhandled rotate array access");
+							{
+								Debug.trace("unhandled rotate array access");
 
+							}
 							else if (channel.dotAccess)
 							{
 
@@ -2318,18 +2347,22 @@ class DAENode extends DAEElement
 										m.appendRotation(odata[0], new Vector3D(tdata[0], tdata[1], tdata[2]));
 										break;
 									default:
-										trace("unhandled rotate dot access " + channel.dotAccessor);
+										Debug.trace("unhandled rotate dot access " + channel.dotAccessor);
 								}
 
 							}
 							else
-								trace("unhandled rotate");
+							{
+								Debug.trace("unhandled rotate");
+							}
 							break;
 
 						case "scale":
 							if (channel.arrayAccess)
-								trace("unhandled scale array access");
+							{
+								Debug.trace("unhandled scale array access");
 
+							}
 							else if (channel.dotAccess)
 							{
 
@@ -2345,18 +2378,22 @@ class DAENode extends DAEElement
 										m.appendScale(tdata[0], tdata[1], odata[0]);
 										break;
 									default:
-										trace("unhandled scale dot access " + channel.dotAccessor);
+										Debug.trace("unhandled scale dot access " + channel.dotAccessor);
 								}
 
 							}
 							else
-								trace("unhandled scale: " + odata.length);
+							{
+								Debug.trace("unhandled scale: " + odata.length);
+							}
 							break;
 
 						case "translate":
 							if (channel.arrayAccess)
-								trace("unhandled translate array access");
+							{
+								Debug.trace("unhandled translate array access");
 
+							}
 							else if (channel.dotAccess)
 							{
 
@@ -2372,27 +2409,33 @@ class DAENode extends DAEElement
 										m.appendTranslation(tdata[0], tdata[1], odata[0]);
 										break;
 									default:
-										trace("unhandled translate dot access " + channel.dotAccessor);
+										Debug.trace("unhandled translate dot access " + channel.dotAccessor);
 								}
 
 							}
 							else
+							{
 								m.appendTranslation(odata[0], odata[1], odata[2]);
+							}
 							break;
 
 						default:
-							trace("unhandled transform type " + transform.type);
+							Debug.trace("unhandled transform type " + transform.type);
 							continue;
 					}
 					matrix.prepend(m);
 
 				}
 				else
+				{
 					matrix.prepend(transform.matrix);
+				}
 
 			}
 			else
+			{
 				matrix.prepend(transform.matrix);
+			}
 		}
 
 		if (DAEElement.USE_LEFT_HANDED)
@@ -2656,7 +2699,9 @@ class DAESkin extends DAEElement
 						var matrix:Matrix3D = new Matrix3D(source.floats.slice(j, j + source.accessor.stride));
 						matrix.transpose();
 						if (DAEElement.USE_LEFT_HANDED)
+						{
 							convertMatrix(matrix);
+						}
 						inv_bind_matrix.push(matrix);
 					}
 			}
@@ -2677,7 +2722,6 @@ class DAESkin extends DAEElement
 		var vcount:Vector.<int> = readIntArray(element.ns::vcount[0]);
 		var v:Vector.<int> = readIntArray(element.ns::v[0]);
 		var numWeights:uint = parseInt(element.@count.toString(), 10);
-		numWeights = numWeights;
 		var index:uint = 0;
 		this.maxBones = 0;
 
@@ -2739,11 +2783,17 @@ class DAEController extends DAEElement
 		this.morph = null;
 
 		if (element.ns::skin && element.ns::skin.length())
+		{
 			this.skin = new DAESkin(element.ns::skin[0]);
+		}
 		else if (element.ns::morph && element.ns::morph.length())
+		{
 			this.morph = new DAEMorph(element.ns::morph[0]);
+		}
 		else
+		{
 			throw new Error("DAEController: could not find a <skin> or <morph> element");
+		}
 	}
 }
 
@@ -2798,7 +2848,9 @@ class DAESampler extends DAEElement
 					break;
 				case "OUTPUT":
 					for (j = 0; j < source.floats.length; j += source.accessor.stride)
+					{
 						this.output.push(source.floats.slice(j, j + source.accessor.stride));
+					}
 					this.dataType = source.accessor.params[0].type;
 					break;
 				case "INTEROLATION":
@@ -2924,7 +2976,9 @@ class DAEChannel extends DAEElement
 
 		}
 		else
+		{
 			this.targetSid = tmp;
+		}
 	}
 }
 

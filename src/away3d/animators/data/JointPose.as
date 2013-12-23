@@ -1,9 +1,9 @@
 package away3d.animators.data
 {
 	import away3d.core.math.*;
-	
+
 	import flash.geom.*;
-	
+
 	/**
 	 * Contains transformation data for a skeleton joint, used for skeleton animation.
 	 *
@@ -18,22 +18,23 @@ package away3d.animators.data
 		 * The name of the joint to which the pose is associated
 		 */
 		public var name:String; // intention is that this should be used only at load time, not in the main loop
-		
+		public var jointName:String;
+
 		/**
 		 * The rotation of the pose stored as a quaternion
 		 */
 		public var orientation:Quaternion = new Quaternion();
-		
+
 		/**
 		 * The translation of the pose
 		 */
 		public var translation:Vector3D = new Vector3D();
-		
+
 		public function JointPose()
 		{
-		
+
 		}
-		
+
 		/**
 		 * Converts the transformation to a Matrix3D representation.
 		 *
@@ -47,7 +48,7 @@ package away3d.animators.data
 			target.appendTranslation(translation.x, translation.y, translation.z);
 			return target;
 		}
-		
+
 		/**
 		 * Copies the transformation data from a source pose object into the existing pose object.
 		 *
