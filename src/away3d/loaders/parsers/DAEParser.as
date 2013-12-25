@@ -778,7 +778,7 @@ package away3d.loaders.parsers
 			Debug.trace(" * parseSkeleton : " + instance_controller);
 
 			var controller:DAEController = _libControllers[instance_controller.url] as DAEController;
-			var skeletonId:String = instance_controller.skeleton[0];
+			var skeletonId:String = controller.skin.joints[0];
 			var skeletonRoot:DAENode = _root.findNodeById(skeletonId) || _root.findNodeBySid(skeletonId);
 
 			if (!skeletonRoot)
