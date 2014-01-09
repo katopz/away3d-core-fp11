@@ -79,11 +79,12 @@ package away3d.animators.states
 			
 			_currentPose = _frames[_currentFrame];
 			
-			if (_skeletonClipNode.looping && _nextFrame >= _skeletonClipNode.lastFrame) {
-				_nextPose = _frames[0];
+			if (_skeletonClipNode.looping && _nextFrame >= _skeletonClipNode.endFrame) {
+				_nextPose = _frames[_skeletonClipNode.begFrame];
 				SkeletonAnimator(_animator).dispatchCycleEvent();
-			} else
+			} else{
 				_nextPose = _frames[_nextFrame];
+			}
 		}
 		
 		/**
@@ -168,8 +169,8 @@ package away3d.animators.states
 			var dz:Number = _rootPos.z;
 			
 			if (_skeletonClipNode.stitchFinalFrame && _nextFrame == _skeletonClipNode.lastFrame) {
-				p1 = _frames[0].jointPoses[0].translation;
-				p2 = _frames[1].jointPoses[0].translation;
+				p1 = _frames[_skeletonClipNode.begFrame].jointPoses[0].translation;
+				p2 = _frames[_skeletonClipNode.begFrame + 1].jointPoses[0].translation;
 				p3 = _currentPose.jointPoses[0].translation;
 				
 				_rootPos.x = p3.x + p1.x + _blendWeight*(p2.x - p1.x);

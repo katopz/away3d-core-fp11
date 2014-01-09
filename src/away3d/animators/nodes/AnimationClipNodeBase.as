@@ -25,6 +25,36 @@ package away3d.animators.nodes
 		
 		public var fixedFrameRate:Boolean = true;
 		
+		private var _begFrame:int;
+		
+		public function get begFrame():int
+		{
+			return _begFrame;
+		}
+		
+		public function set begFrame(value:int):void
+		{
+			if(_begFrame == value)
+				return;
+			
+			_begFrame = value;
+		}
+		
+		private var _endFrame:int;
+		
+		public function get endFrame():int
+		{
+			return _endFrame;
+		}
+		
+		public function set endFrame(value:int):void
+		{
+			if(_endFrame == value)
+				return;
+			
+			_endFrame = value;
+		}
+		
 		/**
 		 * Determines whether the contents of the animation node have looping characteristics enabled.
 		 */
@@ -111,7 +141,7 @@ package away3d.animators.nodes
 		{
 			_stitchDirty = false;
 			
-			_lastFrame = (_stitchFinalFrame)? _numFrames : _numFrames - 1;
+			_endFrame = _lastFrame = (_stitchFinalFrame)? _numFrames : _numFrames - 1;
 			
 			_totalDuration = 0;
 			_totalDelta.x = 0;

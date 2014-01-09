@@ -119,8 +119,9 @@ package away3d.animators.states
 			
 			var looping:Boolean = _animationClipNode.looping;
 			var totalDuration:uint = _animationClipNode.totalDuration;
-			var lastFrame:uint = _animationClipNode.lastFrame;
 			var time:int = _time;
+			
+			totalDuration = _animationClipNode.totalDuration*(_animationClipNode.endFrame - _animationClipNode.begFrame)/_animationClipNode.lastFrame;
 			
 			//trace("time", time, totalDuration)
 			if (looping && (time >= totalDuration || time < 0)) {
@@ -131,34 +132,35 @@ package away3d.animators.states
 			
 			if (!looping && time >= totalDuration) {
 				notifyPlaybackComplete();
-				_currentFrame = lastFrame;
-				_nextFrame = lastFrame;
+				_currentFrame = _animationClipNode.endFrame;
+				_nextFrame = _animationClipNode.endFrame;
 				_blendWeight = 0;
 			} else if (!looping && time <= 0) {
-				_currentFrame = 0;
-				_nextFrame = 0;
+				_currentFrame = _animationClipNode.begFrame;
+				_nextFrame = _animationClipNode.begFrame;
 				_blendWeight = 0;
 			} else if (_animationClipNode.fixedFrameRate) {
-				var t:Number = time/totalDuration*lastFrame;
+				var t:Number = time/totalDuration*(_animationClipNode.endFrame - _animationClipNode.begFrame);
 				_currentFrame = t;
 				_blendWeight = t - _currentFrame;
+				_currentFrame = _animationClipNode.begFrame + t;
 				_nextFrame = _currentFrame + 1;
 			} else {
-				_currentFrame = 0;
-				_nextFrame = 0;
+				_currentFrame = _animationClipNode.begFrame;
+				_nextFrame = _animationClipNode.begFrame;
 				
 				var dur:uint = 0, frameTime:uint;
 				var durations:Vector.<uint> = _animationClipNode.durations;
 				
 				do {
 					frameTime = dur;
-					dur += durations[nextFrame];
+					dur += durations[_nextFrame];
 					_currentFrame = _nextFrame++;
 				} while (time > dur);
 				
-				if (_currentFrame == lastFrame) {
-					_currentFrame = 0;
-					_nextFrame = 1;
+				if (_currentFrame == _animationClipNode.endFrame) {
+					_currentFrame = _animationClipNode.begFrame;
+					_nextFrame = _animationClipNode.begFrame+1;
 				}
 				
 				_blendWeight = (time - frameTime)/durations[_currentFrame];

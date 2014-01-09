@@ -1,19 +1,25 @@
 package away3d.animators
 {
+	import flash.display3D.Context3DProgramType;
+	import flash.geom.Vector3D;
+	import flash.utils.Dictionary;
+	
 	import away3d.arcane;
-	import away3d.animators.data.*;
-	import away3d.animators.states.*;
-	import away3d.animators.transitions.*;
+	import away3d.animators.data.JointPose;
+	import away3d.animators.data.Skeleton;
+	import away3d.animators.data.SkeletonJoint;
+	import away3d.animators.data.SkeletonPose;
+	import away3d.animators.nodes.AnimationClipNodeBase;
+	import away3d.animators.states.ISkeletonAnimationState;
+	import away3d.animators.transitions.IAnimationTransition;
 	import away3d.cameras.Camera3D;
-	import away3d.core.base.*;
-	import away3d.core.managers.*;
-	import away3d.core.math.*;
-	import away3d.events.*;
-	import away3d.materials.passes.*;
-
-	import flash.display3D.*;
-	import flash.geom.*;
-	import flash.utils.*;
+	import away3d.core.base.IRenderable;
+	import away3d.core.base.SkinnedSubGeometry;
+	import away3d.core.base.SubMesh;
+	import away3d.core.managers.Stage3DProxy;
+	import away3d.core.math.Quaternion;
+	import away3d.events.AnimationStateEvent;
+	import away3d.materials.passes.MaterialPassBase;
 
 	use namespace arcane;
 
@@ -596,6 +602,12 @@ package away3d.animators
 					_activeSkeletonState = _activeState as ISkeletonAnimationState;
 				}
 			}
+		}
+		
+		public function playBetween(begFrame:int, endFrame:int):void
+		{
+			AnimationClipNodeBase(_activeNode).begFrame = begFrame<0?0:begFrame;
+			AnimationClipNodeBase(_activeNode).endFrame = endFrame>AnimationClipNodeBase(_activeNode).lastFrame?AnimationClipNodeBase(_activeNode).lastFrame:endFrame;
 		}
 	}
 }

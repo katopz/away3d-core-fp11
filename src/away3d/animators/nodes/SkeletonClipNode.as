@@ -67,6 +67,10 @@ package away3d.animators.nodes
 			super.updateStitch();
 			
 			var i:uint = _numFrames - 1;
+			
+			if(begFrame!=endFrame)
+				i = endFrame;
+			
 			var p1:Vector3D, p2:Vector3D, delta:Vector3D;
 			while (i--) {
 				_totalDuration += _durations[i];
@@ -80,8 +84,8 @@ package away3d.animators.nodes
 			
 			if (_stitchFinalFrame || !_looping) {
 				_totalDuration += _durations[_numFrames - 1];
-				p1 = _frames[0].jointPoses[0].translation;
-				p2 = _frames[1].jointPoses[0].translation;
+				p1 = _frames[begFrame].jointPoses[0].translation;
+				p2 = _frames[begFrame+1].jointPoses[0].translation;
 				delta = p2.subtract(p1);
 				_totalDelta.x += delta.x;
 				_totalDelta.y += delta.y;
