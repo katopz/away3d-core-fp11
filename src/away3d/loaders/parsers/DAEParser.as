@@ -49,6 +49,8 @@ package away3d.loaders.parsers
 		public static const PARSE_VISUAL_SCENES:uint = 8;
 		public static const PARSE_DEFAULT:uint = PARSE_GEOMETRIES | PARSE_IMAGES | PARSE_MATERIALS | PARSE_VISUAL_SCENES;
 
+		public static var textureBasePath:String = "";
+
 		private var _doc:XML;
 		private var _ns:Namespace;
 		private var _parseState:uint = 0;
@@ -193,7 +195,7 @@ package away3d.loaders.parsers
 					for (var imageId:String in _libImages)
 					{
 						var image:DAEImage = _libImages[imageId] as DAEImage;
-						addDependency(image.id, new URLRequest(image.init_from));
+						addDependency(image.id, new URLRequest(textureBasePath + image.init_from));
 					}
 					pauseAndRetrieveDependencies();
 					break;
