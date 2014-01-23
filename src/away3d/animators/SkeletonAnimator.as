@@ -3,7 +3,7 @@ package away3d.animators
 	import flash.display3D.Context3DProgramType;
 	import flash.geom.Vector3D;
 	import flash.utils.Dictionary;
-	
+
 	import away3d.arcane;
 	import away3d.animators.data.JointPose;
 	import away3d.animators.data.Skeleton;
@@ -144,7 +144,7 @@ package away3d.animators
 		public function clone():IAnimator
 		{
 			/* The cast to SkeletonAnimationSet should never fail, as _animationSet can only be set
-			 through the constructor, which will only accept a SkeletonAnimationSet. */
+			through the constructor, which will only accept a SkeletonAnimationSet. */
 			return new SkeletonAnimator(_animationSet as SkeletonAnimationSet, _skeleton, _forceCPU);
 		}
 
@@ -305,6 +305,9 @@ package away3d.animators
 
 			for (var i:uint = 0; i < _numJoints; ++i)
 			{
+				if (!joints[i])
+					continue;
+
 				pose = globalPoses[i];
 				quat = pose.orientation;
 				vec = pose.translation;
@@ -501,6 +504,10 @@ package away3d.animators
 			{
 				globalJointPose = globalPoses[i] ||= new JointPose();
 				joint = joints[i];
+
+				if (!joint)
+					continue;
+
 				parentIndex = joint.parentIndex;
 				pose = jointPoses[i];
 
@@ -525,6 +532,10 @@ package away3d.animators
 			{
 				globalJointPose = globalPoses[i]; // ||= new JointPose();
 				joint = joints[i];
+
+				if (!joint)
+					continue;
+
 				parentIndex = joint.parentIndex;
 				pose = jointPoses[i];
 
@@ -603,11 +614,11 @@ package away3d.animators
 				}
 			}
 		}
-		
+
 		public function playBetween(begFrame:int, endFrame:int):void
 		{
-			AnimationClipNodeBase(_activeNode).begFrame = begFrame<0?0:begFrame;
-			AnimationClipNodeBase(_activeNode).endFrame = endFrame>AnimationClipNodeBase(_activeNode).lastFrame?AnimationClipNodeBase(_activeNode).lastFrame:endFrame;
+			AnimationClipNodeBase(_activeNode).begFrame = begFrame < 0 ? 0 : begFrame;
+			AnimationClipNodeBase(_activeNode).endFrame = endFrame > AnimationClipNodeBase(_activeNode).lastFrame ? AnimationClipNodeBase(_activeNode).lastFrame : endFrame;
 		}
 	}
 }
