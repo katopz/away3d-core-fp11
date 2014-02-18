@@ -3,6 +3,7 @@ package away3d.entities
 	import away3d.arcane;
 	import away3d.bounds.*;
 	import away3d.containers.*;
+	import away3d.core.math.Matrix3DUtils;
 	import away3d.core.partition.*;
 	import away3d.core.pick.*;
 	import away3d.errors.*;
@@ -36,7 +37,7 @@ package away3d.entities
 		protected var _boundsInvalid:Boolean = true;
 		private var _worldBounds:BoundingVolumeBase;
 		private var _worldBoundsInvalid:Boolean = true;
-		
+
 		override public function set ignoreTransform(value:Boolean):void
 		{
 			if (_scene)
@@ -297,20 +298,23 @@ package away3d.entities
 		
 		public function isIntersectingRay(rayPosition:Vector3D, rayDirection:Vector3D):Boolean
 		{
+			if(!pickingCollisionVO.localRayPosition) pickingCollisionVO.localRayPosition = new Vector3D();
+			if(!pickingCollisionVO.localRayDirection) pickingCollisionVO.localRayDirection = new Vector3D();
+			if(!pickingCollisionVO.localNormal) pickingCollisionVO.localNormal = new Vector3D();
+
 			// convert ray to entity space
-			var localRayPosition:Vector3D = inverseSceneTransform.transformVector(rayPosition);
-			var localRayDirection:Vector3D = inverseSceneTransform.deltaTransformVector(rayDirection);
-			
+			var localRayPosition:Vector3D = pickingCollisionVO.localRayPosition;
+			var localRayDirection:Vector3D = pickingCollisionVO.localRayDirection;
+			Matrix3DUtils.transformVector(inverseSceneTransform, rayPosition, localRayPosition);
+			Matrix3DUtils.deltaTransformVector(inverseSceneTransform, rayDirection, localRayDirection);
+
 			// check for ray-bounds collision
-			var rayEntryDistance:Number = bounds.rayIntersection(localRayPosition, localRayDirection, pickingCollisionVO.localNormal ||= new Vector3D());
-			
+			var rayEntryDistance:Number = bounds.rayIntersection(localRayPosition, localRayDirection, pickingCollisionVO.localNormal);
 			if (rayEntryDistance < 0)
 				return false;
 			
 			// Store collision data.
 			pickingCollisionVO.rayEntryDistance = rayEntryDistance;
-			pickingCollisionVO.localRayPosition = localRayPosition;
-			pickingCollisionVO.localRayDirection = localRayDirection;
 			pickingCollisionVO.rayPosition = rayPosition;
 			pickingCollisionVO.rayDirection = rayDirection;
 			pickingCollisionVO.rayOriginIsInsideBounds = rayEntryDistance == 0;

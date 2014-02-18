@@ -4,7 +4,7 @@ package away3d.tools.utils
 	
 	public class TextureUtils
 	{
-		private static const MAX_SIZE:uint = 2048;
+		private static const MAX_SIZE:uint = 4096;
 		
 		public static function isBitmapDataValid(bitmapData:BitmapData):Boolean
 		{
@@ -24,7 +24,7 @@ package away3d.tools.utils
 			return value? ((value & -value) == value) : false;
 		}
 		
-		public static function getBestPowerOf2(value:uint):Number
+		public static function getBestPowerOf2(value:uint):uint
 		{
 			var p:uint = 1;
 			

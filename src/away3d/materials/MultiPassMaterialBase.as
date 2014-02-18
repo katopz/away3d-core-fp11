@@ -311,7 +311,7 @@
 		 */
 		public function removeMethod(method:EffectMethodBase):void
 		{
-			if (_effectsPass)
+			if (!_effectsPass)
 				return;
 			_effectsPass.removeMethod(method);
 			
@@ -603,7 +603,7 @@
 				if (_effectsPass) {
 					_effectsPass.ignoreLights = true;
 					_effectsPass.depthCompareMode = Context3DCompareMode.LESS_EQUAL;
-					_effectsPass.setBlendMode(BlendMode.LAYER);
+					_effectsPass.setBlendMode(BlendMode.SCREEN);
 					_effectsPass.forceSeparateMVP = forceSeparateMVP;
 				}
 			} else if (_effectsPass) {
@@ -729,7 +729,7 @@
 		/**
 		 * The maximum total number of lights provided by the light picker.
 		 */
-		private function get numLights():int
+		protected function get numLights():int
 		{
 			return _lightPicker? _lightPicker.numLightProbes + _lightPicker.numDirectionalLights + _lightPicker.numPointLights +
 				_lightPicker.numCastingDirectionalLights + _lightPicker.numCastingPointLights : 0;

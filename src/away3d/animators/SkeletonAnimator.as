@@ -157,9 +157,7 @@ package away3d.animators
 		 */
 		public function play(name:String, transition:IAnimationTransition = null, offset:Number = NaN):void
 		{
-			if (_activeAnimationName == name)
-				return;
-
+			if (_activeAnimationName != name) {
 			_activeAnimationName = name;
 
 			if (!_animationSet.hasAnimation(name))
@@ -184,6 +182,7 @@ package away3d.animators
 			}
 
 			_activeSkeletonState = _activeState as ISkeletonAnimationState;
+			}
 
 			start();
 

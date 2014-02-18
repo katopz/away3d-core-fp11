@@ -1,30 +1,20 @@
 package away3d.loaders.parsers
 {
-	import flash.geom.Matrix3D;
-	import flash.geom.Vector3D;
-	import flash.net.URLRequest;
-	import flash.utils.ByteArray;
-	import flash.utils.Endian;
+	import away3d.*;
+	import away3d.containers.*;
+	import away3d.core.base.*;
+	import away3d.entities.*;
+	import away3d.library.assets.*;
+	import away3d.loaders.misc.*;
+	import away3d.loaders.parsers.utils.*;
+	import away3d.materials.*;
+	import away3d.materials.utils.*;
+	import away3d.textures.*;
+	import away3d.tools.utils.*;
 	
-	import away3d.arcane;
-	import away3d.containers.ObjectContainer3D;
-	import away3d.core.base.Geometry;
-	import away3d.core.base.ISubGeometry;
-	import away3d.entities.Mesh;
-	import away3d.library.assets.AssetType;
-	import away3d.library.assets.IAsset;
-	import away3d.loaders.misc.ResourceDependency;
-	import away3d.loaders.parsers.utils.ParserUtil;
-	import away3d.materials.ColorMaterial;
-	import away3d.materials.ColorMultiPassMaterial;
-	import away3d.materials.MaterialBase;
-	import away3d.materials.MultiPassMaterialBase;
-	import away3d.materials.SinglePassMaterialBase;
-	import away3d.materials.TextureMaterial;
-	import away3d.materials.TextureMultiPassMaterial;
-	import away3d.materials.utils.DefaultMaterialManager;
-	import away3d.textures.Texture2DBase;
-	import away3d.tools.utils.GeomUtil;
+	import flash.geom.*;
+	import flash.net.*;
+	import flash.utils.*;
 	
 	use namespace arcane;
 	
@@ -44,10 +34,18 @@ package away3d.loaders.parsers
 		
 		private var _cur_mat_end:uint;
 		private var _cur_mat:MaterialVO;
+		private var _useSmoothingGroups:Boolean;
 		
-		public function Max3DSParser()
+		/**
+		 * Creates a new <code>Max3DSParser</code> object.
+		 * 
+		 * @param useSmoothingGroups Determines whether the parser looks for smoothing groups in the 3ds file or assumes uniform smoothing. Defaults to true.
+		 */
+		public function Max3DSParser(useSmoothingGroups:Boolean = true)
 		{
 			super(ParserDataFormat.BINARY);
+			
+			_useSmoothingGroups = useSmoothingGroups;
 		}
 		
 		/**
@@ -109,17 +107,24 @@ package away3d.loaders.parsers
 		/**
 		 * @inheritDoc
 		 */
+		protected override function startParsing(frameLimit:Number):void
+		{
+			super.startParsing(frameLimit);
+			
+			_byteData = ParserUtil.toByteArray(_data);
+			_byteData.position = 0;
+			_byteData.endian = Endian.LITTLE_ENDIAN;
+			
+			_textures = {};
+			_materials = {};
+			_unfinalized_objects = {};
+		}
+		
+		/**
+		 * @inheritDoc
+		 */
 		protected override function proceedParsing():Boolean
 		{
-			if (!_byteData) {
-				_byteData = ParserUtil.toByteArray(_data);
-				_byteData.position = 0;
-				_byteData.endian = Endian.LITTLE_ENDIAN;
-				
-				_textures = {};
-				_materials = {};
-				_unfinalized_objects = {};
-			}
 			
 			// TODO: With this construct, the loop will run no-op for as long
 			// as there is time once file has finished reading. Consider a nice
@@ -499,7 +504,9 @@ package away3d.loaders.parsers
 				faces = new Vector.<FaceVO>(obj.indices.length/3, true);
 				
 				prepareData(vertices, faces, obj);
-				applySmoothGroups(vertices, faces);
+				
+				if (_useSmoothingGroups)
+					applySmoothGroups(vertices, faces);
 				
 				obj.verts = new Vector.<Number>(vertices.length*3, true);
 				for (i = 0; i < vertices.length; i++) {
